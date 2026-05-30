@@ -352,7 +352,7 @@ export default function HomePage() {
         !q ||
         r.name.toLowerCase().includes(q) ||
         r.description.toLowerCase().includes(q) ||
-        r.menu.some((m) => m.name.toLowerCase().includes(q));
+        r.menu?.some((m) => m.name.toLowerCase().includes(q));
       const matchCat = activeCategory === 'all' || r.category === activeCategory || r.categories?.includes(activeCategory);
       const matchPrice = priceFilter === 'all' || r.priceRange === priceFilter;
       const matchDistrict = districtFilter === 'all' || r.district === districtFilter;
@@ -364,16 +364,20 @@ export default function HomePage() {
   }, [restaurants, searchQuery, activeCategory, priceFilter, districtFilter, minRating, ambianceFilter]);
 
   const handleBookmark = useCallback(
-    (id: string) => {
+    async (id: string) => {
       if (role === 'guest') {
         error('Gagal!', 'Anda harus login terlebih dahulu untuk menyimpan favorit.');
         return;
       }
-      const added = toggleBookmark(id);
-      if (added) {
-        success('Berhasil!', 'Restoran berhasil ditambahkan ke favorit!');
-      } else {
-        success('Dihapus', 'Restoran dihapus dari favorit.');
+      try {
+        const added = await toggleBookmark(id);
+        if (added) {
+          success('Berhasil!', 'Restoran berhasil ditambahkan ke favorit!');
+        } else {
+          success('Dihapus', 'Restoran dihapus dari favorit.');
+        }
+      } catch {
+        error('Gagal', 'Tidak dapat mengubah bookmark.');
       }
     },
     [role, toggleBookmark, success, error]

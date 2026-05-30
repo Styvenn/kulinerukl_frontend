@@ -1,10 +1,9 @@
-'use client';
+﻿'use client';
 
-import React, { use, useState, useMemo } from 'react';
+import React, { use, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { useRestaurant } from '@/context/RestaurantContext';
 import { useToast } from '@/components/ui/Toast';
 import {
   ArrowLeft,
@@ -17,436 +16,302 @@ import {
   Sparkles,
   Utensils,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
-import { CATEGORY_LABEL, PRICE_LABEL } from '@/lib/data';
+import { CATEGORY_LABEL, PRICE_LABEL, type Restaurant, type Review } from '@/lib/data';
+import { apiGet, apiPost } from '@/lib/api';
 
 interface PageProps {
   params: Promise<{ id: string }>;
+}
+
+function SkeletonBlock({ w = '100%', h = 16 }: { w?: string | number; h?: number }) {
+  return (
+    <div style={{ width: w, height: h, background: 'linear-gradient(90deg,#E2E8F0 25%,#CBD5E0 50%,#E2E8F0 75%)', backgroundSize: '200% 100%', borderRadius: 8, animation: 'shimmer 1.5s infinite' }} />
+  );
 }
 
 export default function RestaurantDetailPage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
   const { user, role, toggleBookmark, isBookmarked } = useAuth();
-  const { restaurants, addReview } = useRestaurant();
   const { success, error } = useToast();
 
-  // Review Form State
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [ratingInput, setRatingInput] = useState(5);
   const [commentInput, setCommentInput] = useState('');
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
-  // Find current restaurant
-  const restaurant = useMemo(() => {
-    return restaurants.find((r) => r.id === id);
-  }, [restaurants, id]);
+  const fetchDetail = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const data = await apiGet<Restaurant>(`/culinary/${id}`);
+      setRestaurant(data);
+      if (Array.isArray(data.reviews)) {
+        setReviews(data.reviews);
+      } else {
+        const revData = await apiGet<Review[]>(`/reviews/culinary/${id}`);
+        setReviews(Array.isArray(revData) ? revData : []);
+      }
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : 'Gagal memuat detail restoran.');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
-  const handleBookmark = () => {
-    if (role === 'guest') {
-      error('Gagal', 'Silakan masuk terlebih dahulu untuk menyimpan favorit.');
-      return;
-    }
-    const added = toggleBookmark(id);
-    if (added) {
-      success('Disimpan', 'Berhasil ditambahkan ke bookmark Anda.');
-    } else {
-      success('Dihapus', 'Dihapus dari bookmark Anda.');
-    }
+  useEffect(() => { fetchDetail(); }, [fetchDetail]);
+
+  const handleBookmark = async () => {
+    if (role === 'guest') { error('Login diperlukan', 'Silakan masuk terlebih dahulu.'); return; }
+    setBookmarkLoading(true);
+    try {
+      const added = await toggleBookmark(id);
+      added ? success('Disimpan!', 'Berhasil ditambahkan ke bookmark.') : success('Dihapus', 'Dihapus dari bookmark.');
+    } catch { error('Gagal', 'Tidak dapat mengubah bookmark.'); }
+    finally { setBookmarkLoading(false); }
   };
 
-  const handleReviewSubmit = (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentInput.trim()) {
-      error('Peringatan', 'Ulasan tidak boleh kosong.');
-      return;
-    }
-
-    if (role === 'guest') {
-      error('Gagal', 'Anda harus masuk terlebih dahulu.');
-      return;
-    }
-
-    addReview(id, {
-      userId: user?.id ?? 'u-anon',
-      userName: user?.name ?? 'Anonim',
-      rating: ratingInput,
-      comment: commentInput.trim(),
-    });
-
-    success('Terima kasih!', 'Ulasan Anda berhasil dikirim.');
-    setCommentInput('');
-    setRatingInput(5);
-    setShowReviewForm(false);
+    if (!commentInput.trim()) { error('Peringatan', 'Ulasan tidak boleh kosong.'); return; }
+    if (role === 'guest') { error('Login diperlukan', 'Anda harus masuk terlebih dahulu.'); return; }
+    setReviewSubmitting(true);
+    try {
+      await apiPost('/reviews', { culinaryPlaceId: id, rating: ratingInput, comment: commentInput.trim() });
+      success('Terima kasih!', 'Ulasan Anda berhasil dikirim.');
+      setCommentInput(''); setRatingInput(5); setShowReviewForm(false);
+      await fetchDetail();
+    } catch (err) { error('Gagal', err instanceof Error ? err.message : 'Gagal mengirim ulasan.'); }
+    finally { setReviewSubmitting(false); }
   };
 
-  if (!restaurant) {
+  if (loading) {
     return (
-      <div style={{ background: '#F8F9FA', minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0B2F35' }}>Restoran Tidak Ditemukan</h2>
-        <p style={{ color: '#718096' }}>Maaf, data kuliner yang Anda cari tidak tersedia.</p>
-        <Link href="/" style={{ padding: '10px 20px', background: '#D65A31', color: '#fff', borderRadius: 10, textDecoration: 'none', fontWeight: 600 }}>
-          Kembali ke Beranda
-        </Link>
+      <div style={{ background: '#F8F9FA', minHeight: '100vh', padding: '32px 20px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <SkeletonBlock h={380} />
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <SkeletonBlock h={32} w="60%" /><SkeletonBlock h={20} w="40%" /><SkeletonBlock h={80} />
+            </div>
+            <SkeletonBlock h={200} />
+          </div>
+        </div>
+        <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
       </div>
     );
   }
 
-  const isFavorited = isBookmarked(restaurant.id);
+  if (fetchError || !restaurant) {
+    return (
+      <div style={{ background: '#F8F9FA', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ textAlign: 'center' }}>
+          <Utensils size={48} color="#E2E8F0" style={{ marginBottom: 16 }} />
+          <h2 style={{ color: '#1A1A2E', marginBottom: 8 }}>Restoran tidak ditemukan</h2>
+          <p style={{ color: '#718096', marginBottom: 20, fontSize: 14 }}>{fetchError ?? 'Data tidak tersedia.'}</p>
+          <button onClick={() => router.back()} style={{ padding: '10px 20px', background: '#D65A31', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }}>← Kembali</button>
+        </div>
+      </div>
+    );
+  }
+
+  const bookmarked = isBookmarked(id);
 
   return (
     <div style={{ background: '#F8F9FA', minHeight: '100vh', paddingBottom: 80 }}>
-      {/* ── COVER IMAGE HERO ── */}
-      <section style={{ position: 'relative', height: 'clamp(240px, 40vh, 400px)', overflow: 'hidden' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={restaurant.coverImage}
-          alt={restaurant.name}
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(11, 47, 53, 0.85) 0%, rgba(0,0,0,0.1) 100%)' }} />
-        
-        {/* Float action buttons */}
-        <div style={{ position: 'absolute', top: 20, left: 20, right: 20, display: 'flex', justifyContent: 'space-between', zIndex: 10 }}>
-          <button
-            onClick={() => router.back()}
-            style={{
-              width: 40, height: 40, borderRadius: '50%', background: '#fff', border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0B2F35',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            }}
-          >
-            <ArrowLeft size={20} />
-          </button>
-          
-          <button
-            onClick={handleBookmark}
-            style={{
-              width: 40, height: 40, borderRadius: '50%', background: isFavorited ? '#D65A31' : '#fff',
-              border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: isFavorited ? '#fff' : '#D65A31', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              transition: 'all 0.2s',
-            }}
-          >
-            <Heart size={20} fill={isFavorited ? '#fff' : 'none'} />
-          </button>
-        </div>
-
-        {/* Hero Title Info */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '30px 20px', color: '#fff', zIndex: 10 }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-              <span style={{ background: '#D65A31', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20 }}>
-                {CATEGORY_LABEL[restaurant.category]}
-              </span>
-              <span style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20, backdropFilter: 'blur(4px)' }}>
-                {PRICE_LABEL[restaurant.priceRange]}
-              </span>
+      <div style={{ position: 'relative', height: 380, overflow: 'hidden', background: '#0B2F35' }}>
+        {restaurant.coverImage && <img src={restaurant.coverImage} alt={restaurant.name} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.75 }} />}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top,rgba(11,47,53,0.85) 0%,transparent 60%)' }} />
+        <button onClick={() => router.back()} style={{ position: 'absolute', top: 20, left: 20, width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ArrowLeft size={18} />
+        </button>
+        <button onClick={handleBookmark} disabled={bookmarkLoading} style={{ position: 'absolute', top: 20, right: 20, width: 40, height: 40, borderRadius: '50%', background: bookmarked ? '#D65A31' : 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', border: `1px solid ${bookmarked ? '#D65A31' : 'rgba(255,255,255,0.2)'}`, color: '#fff', cursor: bookmarkLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
+          {bookmarkLoading ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Heart size={16} fill={bookmarked ? '#fff' : 'none'} />}
+        </button>
+        <div style={{ position: 'absolute', bottom: 24, left: 24, right: 24 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#D65A31', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <Sparkles size={11} />{CATEGORY_LABEL[restaurant.category] ?? restaurant.category}
+          </div>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: '#fff', margin: '0 0 8px', lineHeight: 1.2 }}>{restaurant.name}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Star size={14} fill="#F6C90E" stroke="#F6C90E" />
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{Number(restaurant.rating).toFixed(1)}</span>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>({restaurant.reviewCount} ulasan)</span>
             </div>
-            
-            <h1 style={{ fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800, margin: '0 0 10px', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-              {restaurant.name}
-            </h1>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', fontSize: 13, color: 'rgba(255,255,255,0.9)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Star size={16} fill="#F6C90E" stroke="#F6C90E" />
-                <span style={{ fontWeight: 700, fontSize: 14 }}>{restaurant.rating.toFixed(1)}</span>
-                <span style={{ opacity: 0.8 }}>({restaurant.reviewCount} ulasan)</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <MapPin size={14} />
-                <span>{restaurant.district}, {restaurant.city}</span>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'rgba(255,255,255,0.8)', fontSize: 12 }}>
+              <MapPin size={12} />{restaurant.district}, {restaurant.city}
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', background: 'rgba(255,255,255,0.15)', padding: '3px 10px', borderRadius: 12 }}>
+              {PRICE_LABEL[restaurant.priceRange]}
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* ── MAIN CONTENT GRID ── */}
-      <div style={{ maxWidth: 1200, margin: '30px auto 0', padding: '0 20px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 28 }} className="detail-layout">
-          
-          {/* LEFT: About, Menu, & Reviews */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-            
-            {/* Description Card */}
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 20px' }}>
+        <div className="detail-layout" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 28, alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0B2F35', marginBottom: 12 }}>Deskripsi</h2>
-              <p style={{ fontSize: 14, color: '#4A5568', lineHeight: 1.7, margin: 0 }}>
-                {restaurant.description}
-              </p>
-              
-              {/* Ambiance tags */}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 18 }}>
-                {restaurant.ambiance.map((amb) => (
-                  <span key={amb} style={{ background: '#F0F7FF', color: '#1E5260', fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 6, textTransform: 'capitalize' }}>
-                    ✨ Suasana: {amb}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Menu List Card */}
-            <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-                <Utensils size={18} color="#D65A31" />
-                <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0B2F35', margin: 0 }}>Daftar Menu Favorit</h2>
-              </div>
-              
-              {restaurant.menu && restaurant.menu.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
-                  {restaurant.menu.map((item) => (
-                    <div
-                      key={item.id}
-                      style={{
-                        padding: 14, borderRadius: 12, border: '1px solid #F1F5F9',
-                        background: '#FAFBFB', transition: 'all 0.2s',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
-                        <h4 style={{ fontSize: 14, fontWeight: 700, color: '#1A1A2E', margin: 0 }}>{item.name}</h4>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#D65A31', whiteSpace: 'nowrap' }}>
-                          Rp {item.price.toLocaleString('id-ID')}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: 12, color: '#718096', margin: 0, lineHeight: 1.4 }}>{item.description}</p>
-                    </div>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0B2F35', marginBottom: 12 }}>Tentang Restoran</h2>
+              <p style={{ fontSize: 14, color: '#4A5568', lineHeight: 1.7, margin: 0 }}>{restaurant.description}</p>
+              {restaurant.ambiance && restaurant.ambiance.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
+                  {restaurant.ambiance.map((tag) => (
+                    <span key={tag} style={{ fontSize: 11, fontWeight: 600, color: '#0B2F35', background: 'rgba(11,47,53,0.08)', padding: '4px 10px', borderRadius: 20, textTransform: 'capitalize' }}>{tag}</span>
                   ))}
                 </div>
-              ) : (
-                <p style={{ color: '#718096', fontSize: 13, margin: 0 }}>Menu belum diperbarui oleh pengelola.</p>
               )}
             </div>
 
-            {/* Reviews Section */}
-            <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <MessageSquare size={18} color="#D65A31" />
-                  <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0B2F35', margin: 0 }}>Ulasan ({restaurant.reviewCount})</h2>
+            {restaurant.menu && restaurant.menu.length > 0 && (
+              <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0B2F35', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><Utensils size={16} color="#D65A31" />Menu Unggulan</h2>
+                  <Link href={`/restaurant/${id}/menu`} style={{ fontSize: 12, fontWeight: 700, color: '#D65A31', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', border: '1.5px solid #D65A31', borderRadius: 8 }}>
+                    Lihat Semua <ChevronRight size={13} />
+                  </Link>
                 </div>
-                
-                {role !== 'guest' ? (
-                  <button
-                    onClick={() => setShowReviewForm((v) => !v)}
-                    style={{
-                      padding: '8px 16px', background: '#D65A31', color: '#fff', border: 'none',
-                      borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                      boxShadow: '0 3px 10px rgba(214, 90, 49, 0.2)',
-                    }}
-                  >
-                    {showReviewForm ? 'Batal' : 'Tulis Ulasan'}
-                  </button>
-                ) : (
-                  <Link href="/sign-in" style={{ fontSize: 12, fontWeight: 600, color: '#D65A31', textDecoration: 'none' }}>
-                    Masuk untuk Review →
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {restaurant.menu.slice(0, 4).map((item) => (
+                    <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 0', borderBottom: '1px solid #F8F9FA' }}>
+                      <div>
+                        <p style={{ fontSize: 14, fontWeight: 700, color: '#1A1A2E', margin: '0 0 2px' }}>{item.name}</p>
+                        <p style={{ fontSize: 12, color: '#718096', margin: 0 }}>{item.description}</p>
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: '#D65A31', whiteSpace: 'nowrap', marginLeft: 12 }}>Rp {item.price.toLocaleString('id-ID')}</span>
+                    </div>
+                  ))}
+                </div>
+                {restaurant.menu.length > 4 && (
+                  <Link href={`/restaurant/${id}/menu`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16, padding: '11px', background: 'linear-gradient(135deg,#0B2F35,#1E5260)', color: '#fff', borderRadius: 10, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                    Lihat Semua {restaurant.menu.length} Menu <ChevronRight size={14} />
                   </Link>
                 )}
               </div>
+            )}
 
-              {/* Review Write Form */}
-              {showReviewForm && (
-                <form
-                  onSubmit={handleReviewSubmit}
-                  style={{
-                    background: '#FAFBFB', border: '1px solid #E2E8F0', borderRadius: 12,
-                    padding: 16, marginBottom: 24, animation: 'fadeIn 0.2s ease',
-                  }}
-                >
-                  <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0B2F35', marginBottom: 12 }}>Beri Nilai Restoran Ini:</h4>
-                  
-                  {/* Star Rating Select */}
-                  <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-                    {[1, 2, 3, 4, 5].map((star) => {
-                      const displayRating = hoverRating !== null ? hoverRating : ratingInput;
-                      return (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setRatingInput(star)}
-                          onMouseEnter={() => setHoverRating(star)}
-                          onMouseLeave={() => setHoverRating(null)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                        >
-                          <Star
-                            size={24}
-                            fill={star <= displayRating ? '#F6C90E' : 'none'}
-                            stroke={star <= displayRating ? '#F6C90E' : '#CBD5E0'}
-                            strokeWidth={1.5}
-                          />
+            <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0B2F35', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><MessageSquare size={16} color="#D65A31" />Ulasan Pengunjung</h2>
+                {role !== 'guest' && (
+                  <button onClick={() => setShowReviewForm((v) => !v)} style={{ fontSize: 12, fontWeight: 700, padding: '7px 14px', background: showReviewForm ? '#E2E8F0' : 'linear-gradient(135deg,#D65A31,#B84A24)', color: showReviewForm ? '#4A5568' : '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+                    {showReviewForm ? 'Batal' : '+ Tulis Ulasan'}
+                  </button>
+                )}
+              </div>
+
+              {showReviewForm && role !== 'guest' && (
+                <form onSubmit={handleReviewSubmit} style={{ background: '#FAFBFB', border: '1px solid #E2E8F0', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#4A5568', display: 'block', marginBottom: 6 }}>Rating</label>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {[1,2,3,4,5].map((s) => (
+                        <button key={s} type="button" onClick={() => setRatingInput(s)} onMouseEnter={() => setHoverRating(s)} onMouseLeave={() => setHoverRating(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                          <Star size={22} fill={s <= (hoverRating ?? ratingInput) ? '#F6C90E' : 'none'} stroke={s <= (hoverRating ?? ratingInput) ? '#F6C90E' : '#CBD5E0'} />
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
-
-                  <div style={{ marginBottom: 16 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#4A5568', marginBottom: 6 }}>
-                      Tulis Ulasan Anda
-                    </label>
-                    <textarea
-                      rows={3}
-                      placeholder="Bagaimana pelayanan, harga, dan cita rasa makanan di sini?"
-                      value={commentInput}
-                      onChange={(e) => setCommentInput(e.target.value)}
-                      style={{
-                        width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8,
-                        fontSize: 13, color: '#1A1A2E', outline: 'none', resize: 'vertical',
-                        boxSizing: 'border-box',
-                      }}
-                    />
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#4A5568', display: 'block', marginBottom: 6 }}>Ulasan Anda</label>
+                    <textarea value={commentInput} onChange={(e) => setCommentInput(e.target.value)} placeholder="Bagikan pengalaman kuliner Anda..." rows={3} style={{ width: '100%', padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 8, fontSize: 13, color: '#1A1A2E', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
                   </div>
-
-                  <button
-                    type="submit"
-                    style={{
-                      padding: '10px 20px', background: 'linear-gradient(135deg, #D65A31, #B84A24)',
-                      color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13,
-                      cursor: 'pointer', boxShadow: '0 4px 10px rgba(214, 90, 49, 0.25)',
-                    }}
-                  >
-                    Kirim Ulasan
+                  <button type="submit" disabled={reviewSubmitting} style={{ padding: '10px 20px', background: reviewSubmitting ? '#A0AEC0' : 'linear-gradient(135deg,#D65A31,#B84A24)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: reviewSubmitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {reviewSubmitting && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
+                    {reviewSubmitting ? 'Mengirim...' : 'Kirim Ulasan'}
                   </button>
                 </form>
               )}
 
-              {/* Reviews List */}
-              {restaurant.reviews && restaurant.reviews.length > 0 ? (
+              {reviews.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                  {restaurant.reviews.map((rev) => (
+                  {reviews.map((rev) => (
                     <div key={rev.id} style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: 16 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div
-                            style={{
-                              width: 32, height: 32, borderRadius: '50%',
-                              background: 'linear-gradient(135deg, #1E5260, #0B2F35)',
-                              color: '#fff', fontSize: 12, fontWeight: 700,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}
-                          >
-                            {rev.userName.substring(0, 2).toUpperCase()}
-                          </div>
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg,#1E5260,#0B2F35)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{rev.userName.substring(0,2).toUpperCase()}</div>
                           <div>
                             <h4 style={{ fontSize: 13, fontWeight: 700, color: '#1A1A2E', margin: 0 }}>{rev.userName}</h4>
                             <span style={{ fontSize: 11, color: '#A0AEC0' }}>{rev.date}</span>
                           </div>
                         </div>
-
-                        {/* Stars */}
                         <div style={{ display: 'flex', gap: 2 }}>
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star
-                              key={s}
-                              size={12}
-                              fill={s <= rev.rating ? '#F6C90E' : 'none'}
-                              stroke={s <= rev.rating ? '#F6C90E' : '#E2E8F0'}
-                            />
-                          ))}
+                          {[1,2,3,4,5].map((s) => <Star key={s} size={12} fill={s <= rev.rating ? '#F6C90E' : 'none'} stroke={s <= rev.rating ? '#F6C90E' : '#E2E8F0'} />)}
                         </div>
                       </div>
-                      <p style={{ fontSize: 13, color: '#4A5568', margin: 0, lineHeight: 1.5, paddingLeft: 42 }}>
-                        {rev.comment}
-                      </p>
+                      <p style={{ fontSize: 13, color: '#4A5568', margin: 0, lineHeight: 1.5, paddingLeft: 42 }}>{rev.comment}</p>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '30px 10px', color: '#A0AEC0' }}>
                   <MessageSquare size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
-                  <p style={{ fontSize: 13, margin: 0 }}>Belum ada ulasan untuk restoran ini. Jadi yang pertama mengulas!</p>
+                  <p style={{ fontSize: 13, margin: 0 }}>Belum ada ulasan. Jadi yang pertama mengulas!</p>
                 </div>
               )}
             </div>
-
           </div>
 
-          {/* RIGHT: Quick Contact & Maps Info */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            
-            {/* Quick Specs */}
             <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
-              <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0B2F35', marginBottom: 16, borderBottom: '1px solid #F1F5F9', paddingBottom: 10 }}>
-                Informasi Kontak
-              </h3>
-              
+              <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0B2F35', marginBottom: 16, borderBottom: '1px solid #F1F5F9', paddingBottom: 10 }}>Informasi Kontak</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', gap: 10 }}>
                   <MapPin size={16} color="#718096" style={{ marginTop: 2, flexShrink: 0 }} />
-                  <div>
-                    <h5 style={{ fontSize: 12, fontWeight: 700, color: '#4A5568', margin: '0 0 2px' }}>Alamat</h5>
-                    <p style={{ fontSize: 12, color: '#718096', margin: 0, lineHeight: 1.4 }}>{restaurant.address}</p>
-                  </div>
+                  <div><h5 style={{ fontSize: 12, fontWeight: 700, color: '#4A5568', margin: '0 0 2px' }}>Alamat</h5><p style={{ fontSize: 12, color: '#718096', margin: 0, lineHeight: 1.4 }}>{restaurant.address}</p></div>
                 </div>
-
-                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', gap: 10 }}>
                   <Clock size={16} color="#718096" style={{ marginTop: 2, flexShrink: 0 }} />
-                  <div>
-                    <h5 style={{ fontSize: 12, fontWeight: 700, color: '#4A5568', margin: '0 0 2px' }}>Jam Operasional</h5>
-                    <p style={{ fontSize: 12, color: '#718096', margin: 0 }}>{restaurant.openHours}</p>
-                  </div>
+                  <div><h5 style={{ fontSize: 12, fontWeight: 700, color: '#4A5568', margin: '0 0 2px' }}>Jam Operasional</h5><p style={{ fontSize: 12, color: '#718096', margin: 0 }}>{restaurant.openHours}</p></div>
                 </div>
-
-                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                  <Phone size={16} color="#718096" style={{ marginTop: 2, flexShrink: 0 }} />
-                  <div>
-                    <h5 style={{ fontSize: 12, fontWeight: 700, color: '#4A5568', margin: '0 0 2px' }}>Telepon</h5>
-                    <p style={{ fontSize: 12, color: '#718096', margin: 0 }}>{restaurant.phone}</p>
+                {restaurant.phone && (
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <Phone size={16} color="#718096" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <div><h5 style={{ fontSize: 12, fontWeight: 700, color: '#4A5568', margin: '0 0 2px' }}>Telepon</h5><p style={{ fontSize: 12, color: '#718096', margin: 0 }}>{restaurant.phone}</p></div>
                   </div>
-                </div>
+                )}
               </div>
-
-              {/* Action Buttons */}
               <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <a
-                  href={`tel:${restaurant.phone}`}
-                  style={{
-                    padding: '11px', background: '#0B2F35', color: '#fff', borderRadius: 10,
-                    fontSize: 13, fontWeight: 700, textDecoration: 'none', textAlign: 'center',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    boxShadow: '0 3px 10px rgba(11, 47, 53, 0.15)',
-                  }}
-                >
-                  <Phone size={14} />
-                  Hubungi Sekarang
-                </a>
+                {restaurant.phone && (
+                  <a href={`tel:${restaurant.phone}`} style={{ padding: '11px', background: '#0B2F35', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Phone size={14} />Hubungi Sekarang
+                  </a>
+                )}
+                <Link href={`/restaurant/${id}/menu`} style={{ padding: '11px', background: 'linear-gradient(135deg,#D65A31,#B84A24)', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <Utensils size={14} />Lihat Semua Menu
+                </Link>
               </div>
             </div>
-
-            {/* Google Map Card */}
             <div style={{ background: '#fff', borderRadius: 16, padding: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
-              <div style={{ borderRadius: 12, overflow: 'hidden', height: 260, background: '#E2E8F0', position: 'relative' }}>
+              <div style={{ borderRadius: 12, overflow: 'hidden', height: 260, background: '#E2E8F0' }}>
                 {restaurant.mapUrl && restaurant.mapUrl.startsWith('https://') ? (
-                  <iframe
-                    src={restaurant.mapUrl}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen={false}
-                    loading="lazy"
-                    title={`Peta Lokasi ${restaurant.name}`}
-                  />
+                  <iframe src={restaurant.mapUrl} width="100%" height="100%" style={{ border: 0 }} allowFullScreen={false} loading="lazy" title={`Peta ${restaurant.name}`} />
                 ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'linear-gradient(135deg, #E2E8F0, #CBD5E0)', color: '#4A5568', textAlign: 'center' }}>
+                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#E2E8F0,#CBD5E0)', color: '#4A5568', textAlign: 'center', padding: 20 }}>
                     <MapPin size={36} color="#D65A31" style={{ marginBottom: 10 }} />
-                    <p style={{ fontSize: 12, fontWeight: 700, margin: '0 0 4px' }}>Peta Lokasi Simulasi</p>
+                    <p style={{ fontSize: 12, fontWeight: 700, margin: '0 0 4px' }}>Peta Lokasi</p>
                     <p style={{ fontSize: 10, color: '#718096', margin: 0 }}>{restaurant.address}</p>
                   </div>
                 )}
               </div>
             </div>
-
           </div>
-
         </div>
       </div>
 
       <style>{`
-        @media (max-width: 820px) {
-          .detail-layout {
-            grid-template-columns: 1fr !important;
-          }
-        }
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        @media(max-width:820px){.detail-layout{grid-template-columns:1fr !important}}
       `}</style>
     </div>
   );

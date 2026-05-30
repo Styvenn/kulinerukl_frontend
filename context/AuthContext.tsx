@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { apiPost, apiGet, apiDelete } from '@/lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type UserRole = 'guest' | 'user' | 'admin';
@@ -20,30 +21,21 @@ interface AuthContextValue {
   bookmarks: string[];
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  toggleBookmark: (restaurantId: string) => boolean;
+  toggleBookmark: (restaurantId: string) => Promise<boolean>;
   isBookmarked: (restaurantId: string) => boolean;
   updateProfile: (name: string, email: string) => void;
 }
 
-// ─── Mock Users ───────────────────────────────────────────────────────────────
-const MOCK_USERS: Record<string, UserProfile & { password: string }> = {
-  'user@mail.com': {
-    id: 'u1',
-    name: 'Budi Santoso',
-    email: 'user@mail.com',
-    password: 'user123',
-    avatar: '',
-    role: 'user',
-  },
-  'admin@mail.com': {
-    id: 'a1',
-    name: 'Admin Platform',
-    email: 'admin@mail.com',
-    password: 'admin123',
-    avatar: '',
-    role: 'admin',
-  },
-};
+// ─── API Response Types ───────────────────────────────────────────────────────
+interface LoginResponse {
+  token: string;
+  user: UserProfile;
+}
+
+interface BookmarkItem {
+  culinaryPlaceId: string;
+  [key: string]: unknown;
+}
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -57,30 +49,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem('lth_user');
-      const storedBookmarks = localStorage.getItem('lth_bookmarks');
-      if (storedUser) setUser(JSON.parse(storedUser));
-      if (storedBookmarks) setBookmarks(JSON.parse(storedBookmarks));
+      if (storedUser) {
+        const parsedUser: UserProfile = JSON.parse(storedUser);
+        setUser(parsedUser);
+        // Load bookmarks from API after rehydrating user
+        loadBookmarks();
+      }
     } catch {
       // ignore parse errors
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    await new Promise((res) => setTimeout(res, 900)); // simulate network latency
-
-    const found = MOCK_USERS[email.toLowerCase()];
-    if (!found || found.password !== password) {
-      throw new Error('Email atau password salah. Coba lagi.');
+  // ─── Load Bookmarks ──────────────────────────────────────────────────────────
+  const loadBookmarks = useCallback(async () => {
+    try {
+      const data = await apiGet<BookmarkItem[]>('/bookmarks');
+      const ids = (data ?? []).map((b) => b.culinaryPlaceId);
+      setBookmarks(ids);
+    } catch {
+      // Non-critical: silently fail (guest or token expired)
+      setBookmarks([]);
     }
+  }, []);
 
-    const { password: _pw, ...profile } = found;
-    setUser(profile);
+  // ─── Login ───────────────────────────────────────────────────────────────────
+  const login = useCallback(async (email: string, password: string) => {
+    const data = await apiPost<LoginResponse>('/auth/login', { email, password });
+
+    const { token, user: userProfile } = data;
 
     // Persist session
-    localStorage.setItem('lth_user', JSON.stringify(profile));
-    localStorage.setItem('lth_token', `fake-jwt-${profile.id}-${Date.now()}`);
-  }, []);
+    localStorage.setItem('lth_token', token);
+    localStorage.setItem('lth_user', JSON.stringify(userProfile));
 
+    setUser(userProfile);
+
+    // Fetch bookmarks after successful login
+    await loadBookmarks();
+  }, [loadBookmarks]);
+
+  // ─── Logout ──────────────────────────────────────────────────────────────────
   const logout = useCallback(() => {
     setUser(null);
     setBookmarks([]);
@@ -89,28 +98,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('lth_bookmarks');
   }, []);
 
+  // ─── Toggle Bookmark ─────────────────────────────────────────────────────────
   const toggleBookmark = useCallback(
-    (restaurantId: string): boolean => {
-      let added = false;
-      setBookmarks((prev) => {
-        const exists = prev.includes(restaurantId);
-        const next = exists
-          ? prev.filter((id) => id !== restaurantId)
-          : [...prev, restaurantId];
-        localStorage.setItem('lth_bookmarks', JSON.stringify(next));
-        added = !exists;
-        return next;
-      });
-      return added;
+    async (restaurantId: string): Promise<boolean> => {
+      const alreadyBookmarked = bookmarks.includes(restaurantId);
+
+      try {
+        if (alreadyBookmarked) {
+          await apiDelete(`/bookmarks/${restaurantId}`);
+          setBookmarks((prev) => prev.filter((id) => id !== restaurantId));
+          return false;
+        } else {
+          await apiPost('/bookmarks', { culinaryPlaceId: restaurantId });
+          setBookmarks((prev) => [...prev, restaurantId]);
+          return true;
+        }
+      } catch (err) {
+        // Re-throw so the caller can show an error toast
+        throw err;
+      }
     },
-    []
+    [bookmarks]
   );
 
+  // ─── Is Bookmarked ───────────────────────────────────────────────────────────
   const isBookmarked = useCallback(
     (restaurantId: string) => bookmarks.includes(restaurantId),
     [bookmarks]
   );
 
+  // ─── Update Profile (local only — PATCH /users/me endpoint not yet available) ─
   const updateProfile = useCallback((name: string, email: string) => {
     setUser((prev) => {
       if (!prev) return null;

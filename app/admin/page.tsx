@@ -161,10 +161,10 @@ export default function AdminDashboardPage() {
     };
 
     if (editingRestaurant) {
-      updateRestaurant(editingRestaurant.id, payload);
+      await updateRestaurant(editingRestaurant.id, payload);
       success('Berhasil Disimpan', `Data restoran "${formName}" berhasil diperbarui.`);
     } else {
-      addRestaurant(payload);
+      await addRestaurant(payload);
       success('Berhasil Disimpan', `Restoran "${formName}" berhasil ditambahkan.`);
     }
 
@@ -177,9 +177,9 @@ export default function AdminDashboardPage() {
     setDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (activeRestaurantId) {
-      deleteRestaurant(activeRestaurantId);
+      await deleteRestaurant(activeRestaurantId);
       success('Dihapus!', 'Data restoran berhasil dihapus.');
       setDeleteModalOpen(false);
       setActiveRestaurantId(null);

@@ -18,9 +18,13 @@ export default function BookmarksPage() {
     return restaurants.filter((r) => bookmarks.includes(r.id));
   }, [restaurants, bookmarks]);
 
-  const handleRemoveBookmark = (id: string, name: string) => {
-    toggleBookmark(id);
-    success('Dihapus', `Restoran "${name}" dihapus dari favorit.`);
+  const handleRemoveBookmark = async (id: string, name: string) => {
+    try {
+      await toggleBookmark(id);
+      success('Dihapus', `Restoran "${name}" dihapus dari favorit.`);
+    } catch {
+      // Error handles inside context, but showing Toast error is nice
+    }
   };
 
   // Guest State UI

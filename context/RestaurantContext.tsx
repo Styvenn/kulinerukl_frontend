@@ -1,111 +1,112 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { MOCK_RESTAURANTS, type Restaurant, type Review } from '@/lib/data';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { type Restaurant, type Review } from '@/lib/data';
+import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
 
+// ─── Context Value Interface ──────────────────────────────────────────────────
 interface RestaurantContextValue {
   restaurants: Restaurant[];
-  addRestaurant: (restaurantData: Omit<Restaurant, 'id' | 'rating' | 'reviewCount' | 'reviews' | 'slug' | 'isActive'>) => void;
-  updateRestaurant: (id: string, updatedFields: Partial<Restaurant>) => void;
-  deleteRestaurant: (id: string) => void;
-  addReview: (restaurantId: string, reviewData: Omit<Review, 'id' | 'date' | 'userAvatar'>) => void;
+  loading: boolean;
+  apiError: string | null;
+  refetch: () => Promise<void>;
+  addRestaurant: (data: Omit<Restaurant, 'id' | 'rating' | 'reviewCount' | 'reviews' | 'slug' | 'isActive'>) => Promise<void>;
+  updateRestaurant: (id: string, updatedFields: Partial<Restaurant>) => Promise<void>;
+  deleteRestaurant: (id: string) => Promise<void>;
+  addReview: (restaurantId: string, reviewData: Omit<Review, 'id' | 'date' | 'userAvatar'>) => Promise<void>;
+}
+
+// ─── API Response Shape ───────────────────────────────────────────────────────
+// Backend may return paginated or plain array — handle both
+interface CulinaryListResponse {
+  data?: Restaurant[];
+  items?: Restaurant[];
 }
 
 const RestaurantContext = createContext<RestaurantContextValue | null>(null);
 
 export function RestaurantProvider({ children }: { children: React.ReactNode }) {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  // Load from localStorage or mock data
-  useEffect(() => {
-    const saved = localStorage.getItem('lth_restaurants');
-    if (saved) {
-      try {
-        setRestaurants(JSON.parse(saved));
-      } catch (e) {
-        setRestaurants(MOCK_RESTAURANTS);
+  // ─── Load Restaurants ──────────────────────────────────────────────────────
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      // Backend may return { data: [...] } (paginated) or plain array
+      const raw = await apiGet<Restaurant[] | CulinaryListResponse>('/culinary');
+      let list: Restaurant[];
+      if (Array.isArray(raw)) {
+        list = raw;
+      } else if (Array.isArray((raw as CulinaryListResponse).data)) {
+        list = (raw as CulinaryListResponse).data!;
+      } else if (Array.isArray((raw as CulinaryListResponse).items)) {
+        list = (raw as CulinaryListResponse).items!;
+      } else {
+        list = [];
       }
-    } else {
-      setRestaurants(MOCK_RESTAURANTS);
-      localStorage.setItem('lth_restaurants', JSON.stringify(MOCK_RESTAURANTS));
+      setRestaurants(list);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Gagal memuat data restoran.';
+      setApiError(msg);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  // Sync to localStorage helper
-  const saveAndSet = (list: Restaurant[]) => {
-    setRestaurants(list);
-    localStorage.setItem('lth_restaurants', JSON.stringify(list));
-  };
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
-  const addRestaurant = (data: Omit<Restaurant, 'id' | 'rating' | 'reviewCount' | 'reviews' | 'slug' | 'isActive'>) => {
-    const id = `rest-${Date.now()}`;
-    const slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const newRest: Restaurant = {
-      ...data,
-      id,
-      slug,
-      rating: 0,
-      reviewCount: 0,
-      reviews: [],
-      isActive: true,
-    };
-    saveAndSet([newRest, ...restaurants]);
-  };
+  // ─── Add Restaurant (ADMIN) ───────────────────────────────────────────────
+  const addRestaurant = useCallback(
+    async (data: Omit<Restaurant, 'id' | 'rating' | 'reviewCount' | 'reviews' | 'slug' | 'isActive'>) => {
+      const created = await apiPost<Restaurant>('/culinary', data);
+      setRestaurants((prev) => [created, ...prev]);
+    },
+    []
+  );
 
-  const updateRestaurant = (id: string, fields: Partial<Restaurant>) => {
-    const updated = restaurants.map((r) => {
-      if (r.id === id) {
-        const next = { ...r, ...fields };
-        if (fields.name) {
-          next.slug = fields.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-        }
-        return next;
-      }
-      return r;
-    });
-    saveAndSet(updated);
-  };
+  // ─── Update Restaurant (ADMIN) ────────────────────────────────────────────
+  const updateRestaurant = useCallback(
+    async (id: string, fields: Partial<Restaurant>) => {
+      const updated = await apiPatch<Restaurant>(`/culinary/${id}`, fields);
+      setRestaurants((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, ...updated } : r))
+      );
+    },
+    []
+  );
 
-  const deleteRestaurant = (id: string) => {
-    const filtered = restaurants.filter((r) => r.id !== id);
-    saveAndSet(filtered);
-  };
+  // ─── Delete Restaurant (ADMIN) ────────────────────────────────────────────
+  const deleteRestaurant = useCallback(async (id: string) => {
+    await apiDelete(`/culinary/${id}`);
+    setRestaurants((prev) => prev.filter((r) => r.id !== id));
+  }, []);
 
-  const addReview = (restaurantId: string, reviewData: Omit<Review, 'id' | 'date' | 'userAvatar'>) => {
-    const id = `rev-${Date.now()}`;
-    const date = new Date().toLocaleDateString('id-ID', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-
-    const updated = restaurants.map((r) => {
-      if (r.id === restaurantId) {
-        const newReview: Review = {
-          ...reviewData,
-          id,
-          date,
-          userAvatar: '', // default
-        };
-        const nextReviews = [newReview, ...r.reviews];
-        const sum = nextReviews.reduce((acc, curr) => acc + curr.rating, 0);
-        const nextRating = nextReviews.length > 0 ? sum / nextReviews.length : 0;
-        return {
-          ...r,
-          reviews: nextReviews,
-          reviewCount: nextReviews.length,
-          rating: parseFloat(nextRating.toFixed(1)),
-        };
-      }
-      return r;
-    });
-    saveAndSet(updated);
-  };
+  // ─── Add Review ───────────────────────────────────────────────────────────
+  const addReview = useCallback(
+    async (restaurantId: string, reviewData: Omit<Review, 'id' | 'date' | 'userAvatar'>) => {
+      await apiPost('/reviews', {
+        culinaryPlaceId: restaurantId,
+        rating: reviewData.rating,
+        comment: reviewData.comment,
+      });
+      // Refetch the full list so ratings/reviewCount are recalculated by backend
+      await refetch();
+    },
+    [refetch]
+  );
 
   return (
     <RestaurantContext.Provider
       value={{
         restaurants,
+        loading,
+        apiError,
+        refetch,
         addRestaurant,
         updateRestaurant,
         deleteRestaurant,

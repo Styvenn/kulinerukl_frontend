@@ -60,7 +60,7 @@ export default function ExplorePage() {
         !q ||
         r.name.toLowerCase().includes(q) ||
         r.description.toLowerCase().includes(q) ||
-        r.menu.some((m) => m.name.toLowerCase().includes(q));
+        r.menu?.some((m) => m.name.toLowerCase().includes(q));
       const matchCat = activeCategory === 'all' || r.category === activeCategory || r.categories?.includes(activeCategory);
       const matchPrice = priceFilter === 'all' || r.priceRange === priceFilter;
       const matchDistrict = districtFilter === 'all' || r.district === districtFilter;
@@ -69,18 +69,22 @@ export default function ExplorePage() {
   }, [restaurants, searchQuery, activeCategory, priceFilter, districtFilter]);
 
   const handleBookmark = useCallback(
-    (e: React.MouseEvent, id: string) => {
+    async (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
       e.preventDefault();
       if (role === 'guest') {
         error('Gagal', 'Silakan login terlebih dahulu untuk menyimpan favorit.');
         return;
       }
-      const added = toggleBookmark(id);
-      if (added) {
-        success('Berhasil!', 'Ditambahkan ke favorit.');
-      } else {
-        success('Dihapus', 'Dihapus dari favorit.');
+      try {
+        const added = await toggleBookmark(id);
+        if (added) {
+          success('Berhasil!', 'Ditambahkan ke favorit.');
+        } else {
+          success('Dihapus', 'Dihapus dari favorit.');
+        }
+      } catch {
+        error('Gagal', 'Tidak dapat mengubah bookmark.');
       }
     },
     [role, toggleBookmark, success, error]

@@ -15,6 +15,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+import { apiPost } from '@/lib/api';
 
 export default function SignUpPage() {
   const { success, error } = useToast();
@@ -49,11 +50,19 @@ export default function SignUpPage() {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1000));
-    setLoading(false);
-    success('Pendaftaran Berhasil! 🎉', 'Akun kamu siap. Silakan masuk sekarang.');
-    setTimeout(() => router.push('/sign-in'), 1200);
+    try {
+      await apiPost('/auth/register', {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        password: form.password,
+      });
+      success('Pendaftaran Berhasil! 🎉', 'Akun kamu siap. Silakan masuk sekarang.');
+      setTimeout(() => router.push('/sign-in'), 1200);
+    } catch (err) {
+      error('Pendaftaran Gagal', err instanceof Error ? err.message : 'Terjadi kesalahan.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const passwordStrength = () => {
