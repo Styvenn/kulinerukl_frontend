@@ -61,7 +61,7 @@ export default function ExplorePage() {
         r.name.toLowerCase().includes(q) ||
         r.description.toLowerCase().includes(q) ||
         r.menu?.some((m) => m.name.toLowerCase().includes(q));
-      const matchCat = activeCategory === 'all' || r.category === activeCategory || r.categories?.includes(activeCategory);
+      const matchCat = activeCategory === 'all' || r.category?.slug === activeCategory || r.category === activeCategory || r.categories?.includes(activeCategory);
       const matchPrice = priceFilter === 'all' || r.priceRange === priceFilter;
       const matchDistrict = districtFilter === 'all' || r.district === districtFilter;
       return matchSearch && matchCat && matchPrice && matchDistrict;

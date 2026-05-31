@@ -79,7 +79,8 @@ export default function AdminAnalyticsPage() {
   const categoryChartData = useMemo(() => {
     const counts: Record<string, number> = {};
     restaurants.forEach((r) => {
-      counts[r.category] = (counts[r.category] || 0) + 1;
+      const catKey = typeof r.category === 'object' ? (r.category as any)?.slug ?? 'unknown' : r.category;
+      counts[catKey] = (counts[catKey] || 0) + 1;
     });
 
     const total = restaurants.length || 1;
@@ -105,15 +106,15 @@ export default function AdminAnalyticsPage() {
   const recentReviews = useMemo(() => {
     const allRev: { id: string; restName: string; restId: string; userName: string; rating: number; comment: string; date: string }[] = [];
     restaurants.forEach((r) => {
-      r.reviews.forEach((rev) => {
+      (r.reviews ?? []).forEach((rev) => {
         allRev.push({
           id: rev.id,
           restId: r.id,
           restName: r.name,
-          userName: rev.userName,
+          userName: rev.user?.name ?? rev.userName ?? 'Anonim',
           rating: rev.rating,
           comment: rev.comment,
-          date: rev.date,
+          date: rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('id-ID') : (rev.date ?? ''),
         });
       });
     });
@@ -130,7 +131,7 @@ export default function AdminAnalyticsPage() {
   return (
     <div style={{ background: '#F8F9FA', minHeight: '100vh', padding: '36px 20px 80px' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        
+
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, borderBottom: '1px solid #E2E8F0', paddingBottom: 20, marginBottom: 32 }}>
           <div>
@@ -155,14 +156,14 @@ export default function AdminAnalyticsPage() {
 
         {/* Charts Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28, marginBottom: 32 }} className="analytics-grid">
-          
+
           {/* Chart 1: District Distribution (Bar Chart SVG/HTML) */}
           <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.02)', border: '1px solid #F1F5F9' }}>
             <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0B2F35', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 6 }}>
               <MapPin size={16} color="#D65A31" />
               Persebaran Restoran per Kecamatan
             </h3>
-            
+
             {/* Visual Bar Chart */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {districtChartData.map((dist) => (
@@ -193,7 +194,7 @@ export default function AdminAnalyticsPage() {
               <Layers size={16} color="#0B2F35" />
               Pembagian Berdasarkan Kategori
             </h3>
-            
+
             {/* Visual breakdown list with progressive progress indicator */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {categoryChartData.length === 0 ? (
@@ -226,14 +227,14 @@ export default function AdminAnalyticsPage() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 28 }} className="analytics-grid">
-          
+
           {/* Chart 3: Top Rated Ranking list */}
           <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.02)', border: '1px solid #F1F5F9' }}>
             <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0B2F35', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
               <Award size={16} color="#D65A31" />
               Restoran Peringkat Tertinggi (Top 5)
             </h3>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {topRatedList.length === 0 ? (
                 <p style={{ fontSize: 12, color: '#A0AEC0', textAlign: 'center' }}>Belum ada ulasan restoran.</p>
@@ -287,7 +288,7 @@ export default function AdminAnalyticsPage() {
               <TrendingUp size={16} color="#0B2F35" />
               Feed Ulasan Terbaru
             </h3>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {recentReviews.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '30px 10px', color: '#A0AEC0' }}>

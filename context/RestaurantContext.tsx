@@ -10,7 +10,7 @@ interface RestaurantContextValue {
   loading: boolean;
   apiError: string | null;
   refetch: () => Promise<void>;
-  addRestaurant: (data: Omit<Restaurant, 'id' | 'rating' | 'reviewCount' | 'reviews' | 'slug' | 'isActive'>) => Promise<void>;
+  addRestaurant: (data: Omit<Restaurant, 'id' | 'rating' | 'reviewCount' | 'reviews' | 'slug' | 'isActive' | 'category' | 'ambiance' | 'menu'>) => Promise<void>;
   updateRestaurant: (id: string, updatedFields: Partial<Restaurant>) => Promise<void>;
   deleteRestaurant: (id: string) => Promise<void>;
   addReview: (restaurantId: string, reviewData: Omit<Review, 'id' | 'date' | 'userAvatar'>) => Promise<void>;
@@ -62,7 +62,7 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
 
   // ─── Add Restaurant (ADMIN) ───────────────────────────────────────────────
   const addRestaurant = useCallback(
-    async (data: Omit<Restaurant, 'id' | 'rating' | 'reviewCount' | 'reviews' | 'slug' | 'isActive'>) => {
+    async (data: Omit<Restaurant, 'id' | 'rating' | 'reviewCount' | 'reviews' | 'slug' | 'isActive' | 'category' | 'ambiance' | 'menu'>) => {
       const created = await apiPost<Restaurant>('/culinary', data);
       setRestaurants((prev) => [created, ...prev]);
     },
@@ -72,7 +72,11 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
   // ─── Update Restaurant (ADMIN) ────────────────────────────────────────────
   const updateRestaurant = useCallback(
     async (id: string, fields: Partial<Restaurant>) => {
-      const updated = await apiPatch<Restaurant>(`/culinary/${id}`, fields);
+      // Hanya kirim field yang diterima backend
+      const { id: _id, slug: _slug, rating: _rating, reviewCount: _rc,
+        reviews: _rev, isActive: _ia, category: _cat,
+        ambiance: _amb, menu: _menu, ...safeFields } = fields as any;
+      const updated = await apiPatch<Restaurant>(`/culinary/${id}`, safeFields);
       setRestaurants((prev) =>
         prev.map((r) => (r.id === id ? { ...r, ...updated } : r))
       );

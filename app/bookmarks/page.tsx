@@ -151,7 +151,7 @@ export default function BookmarksPage() {
                   </button>
 
                   <span style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(11,47,53,0.85)', color: '#fff', fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20 }}>
-                    {CATEGORY_LABEL[rest.category]}
+                    {rest.category?.name}
                   </span>
                   
                   <span style={{ position: 'absolute', bottom: 12, right: 12, background: 'rgba(214,90,49,0.92)', color: '#fff', fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20 }}>

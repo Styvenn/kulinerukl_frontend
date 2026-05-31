@@ -55,17 +55,19 @@ export default function AdminDashboardPage() {
   // ✅ useMemo dipindah ke sini — sebelum early return
   const stats = useMemo(() => {
     const total = restaurants.length;
-    const totalReviews = restaurants.reduce((acc, r) => acc + r.reviewCount, 0);
-    const sumRatings = restaurants.reduce((acc, r) => acc + r.rating, 0);
+    const totalReviews = restaurants.reduce((acc, r) => acc + (r.reviewCount ?? 0), 0);
+    const sumRatings = restaurants.reduce((acc, r) => acc + (r.rating ?? 0), 0);
     const avgRating = total > 0 ? sumRatings / total : 0;
-    const uniqueCats = new Set(restaurants.map((r) => r.category)).size;
+    const uniqueCats = new Set(restaurants.map((r) => r.category?.slug || r.category)).size;
     return { total, totalReviews, avgRating, uniqueCats };
   }, [restaurants]);
 
   const filtered = useMemo(() => {
     return restaurants.filter((r) => {
       const q = searchQuery.toLowerCase();
-      return r.name.toLowerCase().includes(q) || r.district.toLowerCase().includes(q) || r.category.toLowerCase().includes(q);
+      return (r.name ?? '').toLowerCase().includes(q) ||
+        (r.district ?? '').toLowerCase().includes(q) ||
+        (r.category?.name ?? r.category ?? '').toLowerCase().includes(q);
     });
   }, [restaurants, searchQuery]);
 
@@ -120,14 +122,14 @@ export default function AdminDashboardPage() {
     setFormDesc(rest.description);
     setFormAddress(rest.address);
     setFormDistrict(rest.district);
-    setFormPhone(rest.phone);
-    setFormHours(rest.openHours);
-    setFormCategory(rest.category);
+    setFormPhone(rest.phone ?? '');
+    setFormHours(rest.openHours ?? '10:00 – 22:00');
+    setFormCategory(rest.category?.slug || rest.category);
     setFormPriceRange(rest.priceRange);
     setFormPriceMin(rest.priceMin);
     setFormPriceMax(rest.priceMax);
-    setFormAmbiance(rest.ambiance);
-    setFormImage(rest.thumbnailImage);
+    setFormAmbiance(rest.ambiance ?? ['indoor']);
+    setFormImage(rest.thumbnailImage ?? MOCK_IMAGE_PRESETS[0]);
     setFormModalOpen(true);
   };
 
@@ -141,23 +143,25 @@ export default function AdminDashboardPage() {
     setSubmitLoading(true);
     await new Promise((res) => setTimeout(res, 800));
 
-    const payload = {
+    const payload: any = {
       name: formName.trim(),
+      slug: formName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
       description: formDesc.trim(),
       address: formAddress.trim(),
       district: formDistrict,
       city: 'Malang',
       phone: formPhone.trim() || '(0341) 123456',
       openHours: formHours.trim(),
-      priceRange: formPriceRange,
+      priceRange: formPriceRange.toUpperCase(),
       priceMin: Number(formPriceMin),
       priceMax: Number(formPriceMax),
-      category: formCategory,
-      ambiance: formAmbiance,
       coverImage: formImage,
       thumbnailImage: formImage,
       mapUrl: '',
-      menu: [] as Restaurant['menu'],
+      // Pertahankan categoryId dari restoran yang diedit
+      categoryId: editingRestaurant?.categoryId ??
+        editingRestaurant?.category?.id ??
+        'cmptizpfx00009cj7akz5lcvj',
     };
 
     if (editingRestaurant) {
@@ -319,7 +323,7 @@ export default function AdminDashboardPage() {
                       </td>
                       <td style={tdStyle}>
                         <span style={{ background: 'rgba(11, 47, 53, 0.08)', color: '#0B2F35', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 20 }}>
-                          {CATEGORY_LABEL[rest.category]}
+                          {rest.category?.name}
                         </span>
                       </td>
                       <td style={tdStyle}>
@@ -330,8 +334,8 @@ export default function AdminDashboardPage() {
                       <td style={tdStyle}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
                           <Star size={13} fill="#F6C90E" stroke="#F6C90E" />
-                          <span style={{ fontWeight: 700 }}>{rest.rating.toFixed(1)}</span>
-                          <span style={{ color: '#A0AEC0' }}>({rest.reviewCount})</span>
+                          <span style={{ fontWeight: 700 }}>{(rest.rating ?? 0).toFixed(1)}</span>
+                          <span style={{ color: '#A0AEC0' }}>({rest.reviewCount ?? 0})</span>
                         </div>
                       </td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>
@@ -526,7 +530,7 @@ export default function AdminDashboardPage() {
                   <label key={tag} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: '#4A5568' }}>
                     <input
                       type="checkbox"
-                      checked={formAmbiance.includes(tag)}
+                      checked={(formAmbiance ?? []).includes(tag)}
                       onChange={() => handleAmbianceCheckbox(tag)}
                       style={{ accentColor: '#D65A31' }}
                     />

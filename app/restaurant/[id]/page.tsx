@@ -138,7 +138,7 @@ export default function RestaurantDetailPage({ params }: PageProps) {
         </button>
         <div style={{ position: 'absolute', bottom: 24, left: 24, right: 24 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#D65A31', color: '#fff', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            <Sparkles size={11} />{CATEGORY_LABEL[restaurant.category] ?? restaurant.category}
+            <Sparkles size={11} />{restaurant.category?.name}
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 900, color: '#fff', margin: '0 0 8px', lineHeight: 1.2 }}>{restaurant.name}</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -214,7 +214,7 @@ export default function RestaurantDetailPage({ params }: PageProps) {
                   <div style={{ marginBottom: 12 }}>
                     <label style={{ fontSize: 12, fontWeight: 700, color: '#4A5568', display: 'block', marginBottom: 6 }}>Rating</label>
                     <div style={{ display: 'flex', gap: 4 }}>
-                      {[1,2,3,4,5].map((s) => (
+                      {[1, 2, 3, 4, 5].map((s) => (
                         <button key={s} type="button" onClick={() => setRatingInput(s)} onMouseEnter={() => setHoverRating(s)} onMouseLeave={() => setHoverRating(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
                           <Star size={22} fill={s <= (hoverRating ?? ratingInput) ? '#F6C90E' : 'none'} stroke={s <= (hoverRating ?? ratingInput) ? '#F6C90E' : '#CBD5E0'} />
                         </button>
@@ -238,14 +238,20 @@ export default function RestaurantDetailPage({ params }: PageProps) {
                     <div key={rev.id} style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: 16 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg,#1E5260,#0B2F35)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{rev.userName.substring(0,2).toUpperCase()}</div>
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg,#1E5260,#0B2F35)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {(rev.user?.name ?? rev.userName ?? 'U').substring(0, 2).toUpperCase()}
+                          </div>
                           <div>
-                            <h4 style={{ fontSize: 13, fontWeight: 700, color: '#1A1A2E', margin: 0 }}>{rev.userName}</h4>
-                            <span style={{ fontSize: 11, color: '#A0AEC0' }}>{rev.date}</span>
+                            <h4 style={{ fontSize: 13, fontWeight: 700, color: '#1A1A2E', margin: 0 }}>
+                              {rev.user?.name ?? rev.userName ?? 'Anonim'}
+                            </h4>
+                            <span style={{ fontSize: 11, color: '#A0AEC0' }}>
+                              {rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('id-ID') : rev.date}
+                            </span>
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 2 }}>
-                          {[1,2,3,4,5].map((s) => <Star key={s} size={12} fill={s <= rev.rating ? '#F6C90E' : 'none'} stroke={s <= rev.rating ? '#F6C90E' : '#E2E8F0'} />)}
+                          {[1, 2, 3, 4, 5].map((s) => <Star key={s} size={12} fill={s <= rev.rating ? '#F6C90E' : 'none'} stroke={s <= rev.rating ? '#F6C90E' : '#E2E8F0'} />)}
                         </div>
                       </div>
                       <p style={{ fontSize: 13, color: '#4A5568', margin: 0, lineHeight: 1.5, paddingLeft: 42 }}>{rev.comment}</p>

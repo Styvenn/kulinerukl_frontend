@@ -20,11 +20,13 @@ export interface MenuItem {
 export interface Review {
   id: string;
   userId: string;
-  userName: string;
-  userAvatar: string;
+  userName?: string;
+  user?: { id: string; name: string; }
+  userAvatar?: string;
   rating: number;
   comment: string;
-  date: string;
+  date?: string;
+  createdAt?: string;
   photo?: string;
 }
 
@@ -32,7 +34,8 @@ export interface Restaurant {
   id: string;
   name: string;
   slug: string;
-  category: Category;
+  category: any;
+  categoryId?: string;
   categories?: Category[];
   description: string;
   address: string;
@@ -56,19 +59,19 @@ export interface Restaurant {
 
 // ─── Helper Constants ─────────────────────────────────────────────────────────
 export const PRICE_LABEL: Record<PriceRange, string> = {
-  budget:  'Rp 10k – 30k',
-  mid:     'Rp 30k – 75k',
+  budget: 'Rp 10k – 30k',
+  mid: 'Rp 30k – 75k',
   premium: 'Rp 75k+',
 };
 
 export const CATEGORY_LABEL: Record<Category, string> = {
-  'street-food':   'Street Food',
-  cafe:            'Cozy Cafe',
-  noodle:          'Noodle Spots',
-  dessert:         'Dessert',
+  'street-food': 'Street Food',
+  cafe: 'Cozy Cafe',
+  noodle: 'Noodle Spots',
+  dessert: 'Dessert',
   'night-hangout': 'Night Hangout',
-  indonesian:      'Indonesian',
-  western:         'Western',
+  indonesian: 'Indonesian',
+  western: 'Western',
 };
 
 // Hardcoded districts for Malang (previously derived from mock data)

@@ -28,7 +28,7 @@ interface AuthContextValue {
 
 // ─── API Response Types ───────────────────────────────────────────────────────
 interface LoginResponse {
-  token: string;
+  access_token: string;
   user: UserProfile;
 }
 
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore parse errors
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ─── Load Bookmarks ──────────────────────────────────────────────────────────
@@ -77,10 +77,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const data = await apiPost<LoginResponse>('/auth/login', { email, password });
 
-    const { token, user: userProfile } = data;
+    const { access_token, user: userProfile } = data;
 
     // Persist session
-    localStorage.setItem('lth_token', token);
+    localStorage.setItem('lth_token', access_token);
     localStorage.setItem('lth_user', JSON.stringify(userProfile));
 
     setUser(userProfile);
@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const role: UserRole = user?.role ?? 'guest';
+  const role: UserRole = (user?.role?.toLowerCase() as UserRole) ?? 'guest';
 
   return (
     <AuthContext.Provider

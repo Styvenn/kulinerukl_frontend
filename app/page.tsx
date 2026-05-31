@@ -143,7 +143,7 @@ function RestaurantCard({
             backdropFilter: 'blur(4px)',
           }}
         >
-          {CATEGORY_LABEL[restaurant.category]}
+          {restaurant.category?.name}
         </span>
         {/* Bookmark button */}
         <button
@@ -353,7 +353,7 @@ export default function HomePage() {
         r.name.toLowerCase().includes(q) ||
         r.description.toLowerCase().includes(q) ||
         r.menu?.some((m) => m.name.toLowerCase().includes(q));
-      const matchCat = activeCategory === 'all' || r.category === activeCategory || r.categories?.includes(activeCategory);
+      const matchCat = activeCategory === 'all' || r.category?.slug === activeCategory || r.category === activeCategory || r.categories?.includes(activeCategory);
       const matchPrice = priceFilter === 'all' || r.priceRange === priceFilter;
       const matchDistrict = districtFilter === 'all' || r.district === districtFilter;
       const matchRating = r.rating >= minRating;
