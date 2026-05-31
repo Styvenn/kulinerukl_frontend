@@ -10,12 +10,11 @@ interface RestaurantContextValue {
   loading: boolean;
   apiError: string | null;
   refetch: () => Promise<void>;
-  addRestaurant: (data: Omit<Restaurant, 'id' | 'rating' | 'reviewCount' | 'reviews' | 'slug' | 'isActive' | 'category' | 'ambiance' | 'menu'>) => Promise<void>;
+  addRestaurant: (data: Omit<Restaurant, 'id' | 'rating' | 'reviewCount' | 'reviews' | 'slug' | 'isActive' | 'category' | 'menu'>) => Promise<void>;
   updateRestaurant: (id: string, updatedFields: Partial<Restaurant>) => Promise<void>;
   deleteRestaurant: (id: string) => Promise<void>;
   addReview: (restaurantId: string, reviewData: Omit<Review, 'id' | 'date' | 'userAvatar'>) => Promise<void>;
 }
-
 // ─── API Response Shape ───────────────────────────────────────────────────────
 // Backend may return paginated or plain array — handle both
 interface CulinaryListResponse {
@@ -62,7 +61,7 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
 
   // ─── Add Restaurant (ADMIN) ───────────────────────────────────────────────
   const addRestaurant = useCallback(
-    async (data: Omit<Restaurant, 'id' | 'rating' | 'reviewCount' | 'reviews' | 'slug' | 'isActive' | 'category' | 'ambiance' | 'menu'>) => {
+    async (data: Omit<Restaurant, 'id' | 'rating' | 'reviewCount' | 'reviews' | 'slug' | 'isActive' | 'category' | 'menu'>) => {
       const created = await apiPost<Restaurant>('/culinary', data);
       setRestaurants((prev) => [created, ...prev]);
     },

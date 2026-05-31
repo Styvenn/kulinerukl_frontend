@@ -19,6 +19,7 @@ import {
   Loader2,
   Search,
 } from 'lucide-react';
+import { apiGet, apiPost } from '@/lib/api';
 import { DISTRICTS, CATEGORY_LABEL, PRICE_LABEL, type Category, type PriceRange, type Ambiance, type Restaurant } from '@/lib/data';
 
 const MOCK_IMAGE_PRESETS = [
@@ -141,39 +142,51 @@ export default function AdminDashboardPage() {
     }
 
     setSubmitLoading(true);
-    await new Promise((res) => setTimeout(res, 800));
 
-    const payload: any = {
-      name: formName.trim(),
-      slug: formName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-      description: formDesc.trim(),
-      address: formAddress.trim(),
-      district: formDistrict,
-      city: 'Malang',
-      phone: formPhone.trim() || '(0341) 123456',
-      openHours: formHours.trim(),
-      priceRange: formPriceRange.toUpperCase(),
-      priceMin: Number(formPriceMin),
-      priceMax: Number(formPriceMax),
-      coverImage: formImage,
-      thumbnailImage: formImage,
-      mapUrl: '',
-      // Pertahankan categoryId dari restoran yang diedit
-      categoryId: editingRestaurant?.categoryId ??
-        editingRestaurant?.category?.id ??
-        'cmptizpfx00009cj7akz5lcvj',
-    };
+    try {
+      // Fetch or create the category dynamically
+      const categories = await apiGet<any[]>('/categories');
+      let targetCat = categories.find((c: any) => c.slug === formCategory);
+      if (!targetCat) {
+        targetCat = await apiPost('/categories', {
+          name: CATEGORY_LABEL[formCategory as Category] || formCategory,
+          slug: formCategory,
+        });
+      }
 
-    if (editingRestaurant) {
-      await updateRestaurant(editingRestaurant.id, payload);
-      success('Berhasil Disimpan', `Data restoran "${formName}" berhasil diperbarui.`);
-    } else {
-      await addRestaurant(payload);
-      success('Berhasil Disimpan', `Restoran "${formName}" berhasil ditambahkan.`);
+      const payload: any = {
+        name: formName.trim(),
+        slug: formName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        description: formDesc.trim(),
+        address: formAddress.trim(),
+        district: formDistrict,
+        city: 'Malang',
+        phone: formPhone.trim() || '(0341) 123456',
+        openHours: formHours.trim(),
+        priceRange: formPriceRange.toUpperCase(),
+        priceMin: Number(formPriceMin),
+        priceMax: Number(formPriceMax),
+        coverImage: formImage,
+        thumbnailImage: formImage,
+        mapUrl: '',
+        ambiance: formAmbiance,
+        categoryId: targetCat.id,
+      };
+
+      if (editingRestaurant) {
+        await updateRestaurant(editingRestaurant.id, payload);
+        success('Berhasil Disimpan', `Data restoran "${formName}" berhasil diperbarui.`);
+      } else {
+        await addRestaurant(payload);
+        success('Berhasil Disimpan', `Restoran "${formName}" berhasil ditambahkan.`);
+      }
+
+      setFormModalOpen(false);
+    } catch (err: any) {
+      error('Gagal Menyimpan', err.message || 'Terjadi kesalahan saat menyimpan data');
+    } finally {
+      setSubmitLoading(false);
     }
-
-    setSubmitLoading(false);
-    setFormModalOpen(false);
   };
 
   const handleOpenDelete = (id: string) => {
