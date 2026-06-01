@@ -53,7 +53,6 @@ export default function AdminDashboardPage() {
   const [formImage, setFormImage] = useState(MOCK_IMAGE_PRESETS[0]);
   const [submitLoading, setSubmitLoading] = useState(false);
 
-  // ✅ useMemo dipindah ke sini — sebelum early return
   const stats = useMemo(() => {
     const total = restaurants.length;
     const totalReviews = restaurants.reduce((acc, r) => acc + (r.reviewCount ?? 0), 0);
@@ -72,7 +71,6 @@ export default function AdminDashboardPage() {
     });
   }, [restaurants, searchQuery]);
 
-  // ✅ Authorization Check setelah semua hooks
   if (role !== 'admin') {
     return (
       <div style={{ background: '#F8F9FA', minHeight: '85vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
@@ -84,15 +82,7 @@ export default function AdminDashboardPage() {
           <p style={{ fontSize: 14, color: '#718096', lineHeight: 1.6, marginBottom: 28 }}>
             Halaman ini dilindungi dan hanya dapat diakses oleh Administrator platform Local Taste Hub.
           </p>
-          <Link
-            href="/"
-            style={{
-              display: 'inline-block', padding: '12px 28px', borderRadius: 10,
-              background: 'linear-gradient(135deg, #0B2F35, #1E5260)', color: '#fff',
-              fontWeight: 700, fontSize: 14, textDecoration: 'none',
-              boxShadow: '0 4px 12px rgba(11, 47, 53, 0.2)',
-            }}
-          >
+          <Link href="/" style={{ display: 'inline-block', padding: '12px 28px', borderRadius: 10, background: 'linear-gradient(135deg, #0B2F35, #1E5260)', color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none', boxShadow: '0 4px 12px rgba(11, 47, 53, 0.2)' }}>
             Kembali ke Beranda
           </Link>
         </div>
@@ -102,16 +92,10 @@ export default function AdminDashboardPage() {
 
   const handleOpenCreate = () => {
     setEditingRestaurant(null);
-    setFormName('');
-    setFormDesc('');
-    setFormAddress('');
-    setFormDistrict('Klojen');
-    setFormPhone('');
-    setFormHours('10:00 – 22:00');
-    setFormCategory('street-food');
-    setFormPriceRange('mid');
-    setFormPriceMin(15000);
-    setFormPriceMax(50000);
+    setFormName(''); setFormDesc(''); setFormAddress('');
+    setFormDistrict('Klojen'); setFormPhone(''); setFormHours('10:00 – 22:00');
+    setFormCategory('street-food'); setFormPriceRange('mid');
+    setFormPriceMin(15000); setFormPriceMax(50000);
     setFormAmbiance(['indoor']);
     setFormImage(MOCK_IMAGE_PRESETS[Math.floor(Math.random() * MOCK_IMAGE_PRESETS.length)]);
     setFormModalOpen(true);
@@ -119,16 +103,11 @@ export default function AdminDashboardPage() {
 
   const handleOpenEdit = (rest: Restaurant) => {
     setEditingRestaurant(rest);
-    setFormName(rest.name);
-    setFormDesc(rest.description);
-    setFormAddress(rest.address);
-    setFormDistrict(rest.district);
-    setFormPhone(rest.phone ?? '');
+    setFormName(rest.name); setFormDesc(rest.description); setFormAddress(rest.address);
+    setFormDistrict(rest.district); setFormPhone(rest.phone ?? '');
     setFormHours(rest.openHours ?? '10:00 – 22:00');
     setFormCategory(rest.category?.slug || rest.category);
-    setFormPriceRange(rest.priceRange);
-    setFormPriceMin(rest.priceMin);
-    setFormPriceMax(rest.priceMax);
+    setFormPriceRange(rest.priceRange); setFormPriceMin(rest.priceMin); setFormPriceMax(rest.priceMax);
     setFormAmbiance(rest.ambiance ?? ['indoor']);
     setFormImage(rest.thumbnailImage ?? MOCK_IMAGE_PRESETS[0]);
     setFormModalOpen(true);
@@ -140,11 +119,8 @@ export default function AdminDashboardPage() {
       error('Input Tidak Lengkap', 'Nama restoran dan alamat lengkap wajib diisi.');
       return;
     }
-
     setSubmitLoading(true);
-
     try {
-      // Fetch or create the category dynamically
       const categories = await apiGet<any[]>('/categories');
       let targetCat = categories.find((c: any) => c.slug === formCategory);
       if (!targetCat) {
@@ -153,7 +129,6 @@ export default function AdminDashboardPage() {
           slug: formCategory,
         });
       }
-
       const payload: any = {
         name: formName.trim(),
         slug: formName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
@@ -172,7 +147,6 @@ export default function AdminDashboardPage() {
         ambiance: formAmbiance,
         categoryId: targetCat.id,
       };
-
       if (editingRestaurant) {
         await updateRestaurant(editingRestaurant.id, payload);
         success('Berhasil Disimpan', `Data restoran "${formName}" berhasil diperbarui.`);
@@ -180,7 +154,6 @@ export default function AdminDashboardPage() {
         await addRestaurant(payload);
         success('Berhasil Disimpan', `Restoran "${formName}" berhasil ditambahkan.`);
       }
-
       setFormModalOpen(false);
     } catch (err: any) {
       error('Gagal Menyimpan', err.message || 'Terjadi kesalahan saat menyimpan data');
@@ -221,62 +194,34 @@ export default function AdminDashboardPage() {
           </div>
           <button
             onClick={handleOpenCreate}
-            style={{
-              padding: '11px 20px', background: 'linear-gradient(135deg, #D65A31, #B84A24)',
-              color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 13,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7,
-              boxShadow: '0 4px 14px rgba(214, 90, 49, 0.3)',
-            }}
+            style={{ padding: '11px 20px', background: 'linear-gradient(135deg, #D65A31, #B84A24)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 4px 14px rgba(214, 90, 49, 0.3)' }}
           >
             <Plus size={16} />
             Tambah Restoran Baru
           </button>
         </div>
 
-        {/* METRICS SECTION */}
+        {/* Metrics */}
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginBottom: 36 }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 2px 10px rgba(0,0,0,0.02)', border: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(214,90,49,0.1)', color: '#D65A31', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Utensils size={20} />
+          {[
+            { icon: <Utensils size={20} />, value: stats.total, label: 'Total Restoran', bg: 'rgba(214,90,49,0.1)', color: '#D65A31' },
+            { icon: <MessageSquare size={20} />, value: stats.totalReviews, label: 'Total Ulasan', bg: 'rgba(11,47,53,0.1)', color: '#0B2F35' },
+            { icon: <Star size={20} fill="#F6C90E" />, value: `${stats.avgRating.toFixed(1)} ★`, label: 'Rata-rata Rating', bg: '#FFFDF0', color: '#F6C90E', border: '1px solid #FFF1C5' },
+            { icon: <Layers size={20} />, value: stats.uniqueCats, label: 'Kategori Aktif', bg: 'rgba(30,82,96,0.1)', color: '#1E5260' },
+          ].map((s, i) => (
+            <div key={i} style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 2px 10px rgba(0,0,0,0.02)', border: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', border: s.border, flexShrink: 0 }}>
+                {s.icon}
+              </div>
+              <div>
+                <p style={{ fontSize: 20, fontWeight: 800, color: '#0B2F35', margin: 0 }}>{s.value}</p>
+                <p style={{ fontSize: 12, color: '#A0AEC0', margin: '2px 0 0' }}>{s.label}</p>
+              </div>
             </div>
-            <div>
-              <p style={{ fontSize: 20, fontWeight: 800, color: '#0B2F35', margin: 0 }}>{stats.total}</p>
-              <p style={{ fontSize: 12, color: '#A0AEC0', margin: '2px 0 0' }}>Total Restoran</p>
-            </div>
-          </div>
-
-          <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 2px 10px rgba(0,0,0,0.02)', border: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(11,47,53,0.1)', color: '#0B2F35', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MessageSquare size={20} />
-            </div>
-            <div>
-              <p style={{ fontSize: 20, fontWeight: 800, color: '#0B2F35', margin: 0 }}>{stats.totalReviews}</p>
-              <p style={{ fontSize: 12, color: '#A0AEC0', margin: '2px 0 0' }}>Total Ulasan</p>
-            </div>
-          </div>
-
-          <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 2px 10px rgba(0,0,0,0.02)', border: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: '#FFFDF0', color: '#F6C90E', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #FFF1C5' }}>
-              <Star size={20} fill="#F6C90E" />
-            </div>
-            <div>
-              <p style={{ fontSize: 20, fontWeight: 800, color: '#0B2F35', margin: 0 }}>{stats.avgRating.toFixed(1)} ★</p>
-              <p style={{ fontSize: 12, color: '#A0AEC0', margin: '2px 0 0' }}>Rata-rata Rating</p>
-            </div>
-          </div>
-
-          <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 2px 10px rgba(0,0,0,0.02)', border: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(30,82,96,0.1)', color: '#1E5260', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Layers size={20} />
-            </div>
-            <div>
-              <p style={{ fontSize: 20, fontWeight: 800, color: '#0B2F35', margin: 0 }}>{stats.uniqueCats}</p>
-              <p style={{ fontSize: 12, color: '#A0AEC0', margin: '2px 0 0' }}>Kategori Aktif</p>
-            </div>
-          </div>
+          ))}
         </section>
 
-        {/* RESTAURANT TABLE LIST */}
+        {/* Table */}
         <section style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.02)', border: '1px solid #F1F5F9', overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0B2F35', margin: 0 }}>Daftar Data Restoran</h3>
@@ -287,17 +232,13 @@ export default function AdminDashboardPage() {
                 placeholder="Cari nama, kecamatan..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%', padding: '8px 12px 8px 34px', borderRadius: 8,
-                  border: '1px solid #E2E8F0', fontSize: 13, outline: 'none',
-                  background: '#F8F9FA', boxSizing: 'border-box',
-                }}
+                style={{ width: '100%', padding: '8px 12px 8px 34px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13, outline: 'none', background: '#F8F9FA', boxSizing: 'border-box' }}
               />
             </div>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 800 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 860 }}>
               <thead>
                 <tr style={{ background: '#FAFBFB', borderBottom: '1px solid #F1F5F9' }}>
                   <th style={thStyle}>Foto</th>
@@ -321,11 +262,7 @@ export default function AdminDashboardPage() {
                     <tr key={rest.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s' }}>
                       <td style={tdStyle}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={rest.thumbnailImage}
-                          alt={rest.name}
-                          style={{ width: 50, height: 42, objectFit: 'cover', borderRadius: 8, border: '1px solid #E2E8F0' }}
-                        />
+                        <img src={rest.thumbnailImage} alt={rest.name} style={{ width: 50, height: 42, objectFit: 'cover', borderRadius: 8, border: '1px solid #E2E8F0' }} />
                       </td>
                       <td style={{ ...tdStyle, fontWeight: 700, color: '#1A1A2E' }}>{rest.name}</td>
                       <td style={tdStyle}>
@@ -335,7 +272,7 @@ export default function AdminDashboardPage() {
                         </div>
                       </td>
                       <td style={tdStyle}>
-                        <span style={{ background: 'rgba(11, 47, 53, 0.08)', color: '#0B2F35', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 20 }}>
+                        <span style={{ background: 'rgba(11,47,53,0.08)', color: '#0B2F35', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 20 }}>
                           {rest.category?.name}
                         </span>
                       </td>
@@ -352,29 +289,41 @@ export default function AdminDashboardPage() {
                         </div>
                       </td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>
-                        <div style={{ display: 'inline-flex', gap: 6 }}>
+                        <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+
+                          {/* ── TOMBOL MENU (BARU) ── */}
+                          <Link
+                            href={`/restaurant/${rest.id}/menu`}
+                            title="Kelola Menu"
+                            style={{
+                              width: 32, height: 32, borderRadius: 8,
+                              background: '#EFF6FF', color: '#1d4ed8',
+                              border: 'none', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              textDecoration: 'none',
+                            }}
+                          >
+                            <Utensils size={13} />
+                          </Link>
+
+                          {/* Edit */}
                           <button
                             onClick={() => handleOpenEdit(rest)}
                             title="Edit Restoran"
-                            style={{
-                              width: 32, height: 32, borderRadius: 8, background: '#F0FDF4',
-                              color: '#15803d', border: 'none', cursor: 'pointer',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}
+                            style={{ width: 32, height: 32, borderRadius: 8, background: '#F0FDF4', color: '#15803d', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           >
                             <Edit2 size={13} />
                           </button>
+
+                          {/* Hapus */}
                           <button
                             onClick={() => handleOpenDelete(rest.id)}
                             title="Hapus Restoran"
-                            style={{
-                              width: 32, height: 32, borderRadius: 8, background: '#FEF2F2',
-                              color: '#b91c1c', border: 'none', cursor: 'pointer',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}
+                            style={{ width: 32, height: 32, borderRadius: 8, background: '#FEF2F2', color: '#b91c1c', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           >
                             <Trash2 size={13} />
                           </button>
+
                         </div>
                       </td>
                     </tr>
@@ -385,53 +334,30 @@ export default function AdminDashboardPage() {
           </div>
         </section>
 
-        {/* DELETE CONFIRMATION MODAL */}
+        {/* Delete Modal */}
         <Modal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Konfirmasi Hapus" size="sm">
           <div style={{ textAlign: 'center', padding: '10px 0' }}>
             <p style={{ fontSize: 14, color: '#4A5568', lineHeight: 1.6, marginBottom: 24 }}>
               Apakah Anda yakin ingin menghapus data restoran ini secara permanen? Tindakan ini tidak dapat dibatalkan.
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={handleConfirmDelete}
-                style={{
-                  flex: 1, padding: '11px', background: '#E53E3E', color: '#fff',
-                  border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                }}
-              >
+              <button onClick={handleConfirmDelete} style={{ flex: 1, padding: '11px', background: '#E53E3E', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
                 Ya, Hapus
               </button>
-              <button
-                onClick={() => setDeleteModalOpen(false)}
-                style={{
-                  flex: 1, padding: '11px', background: '#F8F9FA', color: '#4A5568',
-                  border: '1px solid #E2E8F0', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                }}
-              >
+              <button onClick={() => setDeleteModalOpen(false)} style={{ flex: 1, padding: '11px', background: '#F8F9FA', color: '#4A5568', border: '1px solid #E2E8F0', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                 Batal
               </button>
             </div>
           </div>
         </Modal>
 
-        {/* CREATE / EDIT FORM MODAL */}
-        <Modal
-          isOpen={formModalOpen}
-          onClose={() => setFormModalOpen(false)}
-          title={editingRestaurant ? '✍️ Edit Data Restoran' : '➕ Tambah Restoran Baru'}
-          size="lg"
-        >
+        {/* Create/Edit Modal */}
+        <Modal isOpen={formModalOpen} onClose={() => setFormModalOpen(false)} title={editingRestaurant ? '✍️ Edit Data Restoran' : '➕ Tambah Restoran Baru'} size="lg">
           <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '72vh', overflowY: 'auto', paddingRight: 6 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="form-grid">
               <div>
                 <label style={labelStyle}>Nama Restoran *</label>
-                <input
-                  type="text" required
-                  placeholder="Contoh: Bakso President"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  style={inputStyle}
-                />
+                <input type="text" required placeholder="Contoh: Bakso President" value={formName} onChange={(e) => setFormName(e.target.value)} style={inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}>Kategori Utama *</label>
@@ -448,30 +374,16 @@ export default function AdminDashboardPage() {
               <div>
                 <label style={labelStyle}>Kecamatan (Malang) *</label>
                 <select value={formDistrict} onChange={(e) => setFormDistrict(e.target.value)} style={inputStyle}>
-                  {DISTRICTS.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
+                  {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
               <div>
                 <label style={labelStyle}>Nomor Telepon</label>
-                <input
-                  type="text"
-                  placeholder="(0341) 555-555"
-                  value={formPhone}
-                  onChange={(e) => setFormPhone(e.target.value)}
-                  style={inputStyle}
-                />
+                <input type="text" placeholder="(0341) 555-555" value={formPhone} onChange={(e) => setFormPhone(e.target.value)} style={inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}>Jam Operasional</label>
-                <input
-                  type="text"
-                  placeholder="09:00 – 22:00"
-                  value={formHours}
-                  onChange={(e) => setFormHours(e.target.value)}
-                  style={inputStyle}
-                />
+                <input type="text" placeholder="09:00 – 22:00" value={formHours} onChange={(e) => setFormHours(e.target.value)} style={inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}>Foto Restoran (Preset Demonstrasi)</label>
@@ -483,44 +395,21 @@ export default function AdminDashboardPage() {
                 </select>
               </div>
             </div>
-
             <div>
               <label style={labelStyle}>Alamat Lengkap Restoran *</label>
-              <input
-                type="text" required
-                placeholder="Jl. Raya No. 10, Kecamatan Klojen, Kota Malang"
-                value={formAddress}
-                onChange={(e) => setFormAddress(e.target.value)}
-                style={inputStyle}
-              />
+              <input type="text" required placeholder="Jl. Raya No. 10, Kecamatan Klojen, Kota Malang" value={formAddress} onChange={(e) => setFormAddress(e.target.value)} style={inputStyle} />
             </div>
-
             <div>
               <label style={labelStyle}>Deskripsi Restoran</label>
-              <textarea
-                rows={2}
-                placeholder="Tulis ulasan ringkas mengenai suasana restoran, menu andalan..."
-                value={formDesc}
-                onChange={(e) => setFormDesc(e.target.value)}
-                style={{ ...inputStyle, resize: 'vertical' }}
-              />
+              <textarea rows={2} placeholder="Tulis ulasan ringkas mengenai suasana restoran, menu andalan..." value={formDesc} onChange={(e) => setFormDesc(e.target.value)} style={{ ...inputStyle, resize: 'vertical' }} />
             </div>
-
             <div style={{ background: '#FAFBFB', border: '1px solid #E2E8F0', borderRadius: 12, padding: 14 }}>
               <label style={{ ...labelStyle, marginBottom: 10 }}>Kategori Rentang Harga</label>
               <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
                 {(['budget', 'mid', 'premium'] as const).map((pr) => (
                   <label key={pr} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: '#4A5568' }}>
-                    <input
-                      type="radio"
-                      name="form-price-range"
-                      checked={formPriceRange === pr}
-                      onChange={() => setFormPriceRange(pr)}
-                      style={{ accentColor: '#D65A31' }}
-                    />
-                    <span style={{ textTransform: 'capitalize' }}>
-                      {pr === 'budget' ? 'Budget (<30k)' : pr === 'mid' ? 'Medium (30k-75k)' : 'Premium (75k+)'}
-                    </span>
+                    <input type="radio" name="form-price-range" checked={formPriceRange === pr} onChange={() => setFormPriceRange(pr)} style={{ accentColor: '#D65A31' }} />
+                    <span>{pr === 'budget' ? 'Budget (<30k)' : pr === 'mid' ? 'Medium (30k-75k)' : 'Premium (75k+)'}</span>
                   </label>
                 ))}
               </div>
@@ -535,52 +424,22 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
             </div>
-
             <div>
               <label style={labelStyle}>Pilihan Tag Suasana</label>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                 {(['indoor', 'outdoor', 'rooftop', 'cozy', 'lively'] as const).map((tag) => (
                   <label key={tag} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', color: '#4A5568' }}>
-                    <input
-                      type="checkbox"
-                      checked={(formAmbiance ?? []).includes(tag)}
-                      onChange={() => handleAmbianceCheckbox(tag)}
-                      style={{ accentColor: '#D65A31' }}
-                    />
+                    <input type="checkbox" checked={(formAmbiance ?? []).includes(tag)} onChange={() => handleAmbianceCheckbox(tag)} style={{ accentColor: '#D65A31' }} />
                     <span style={{ textTransform: 'capitalize' }}>{tag}</span>
                   </label>
                 ))}
               </div>
             </div>
-
             <div style={{ display: 'flex', gap: 12, marginTop: 10, borderTop: '1px solid #F1F5F9', paddingTop: 16 }}>
-              <button
-                type="submit"
-                disabled={submitLoading}
-                style={{
-                  flex: 1, padding: '12px', background: 'linear-gradient(135deg, #D65A31, #B84A24)',
-                  color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14,
-                  cursor: submitLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  boxShadow: '0 4px 14px rgba(214, 90, 49, 0.3)',
-                }}
-              >
-                {submitLoading ? (
-                  <>
-                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                    Menyimpan...
-                  </>
-                ) : (
-                  'Simpan Data Restoran'
-                )}
+              <button type="submit" disabled={submitLoading} style={{ flex: 1, padding: '12px', background: 'linear-gradient(135deg, #D65A31, #B84A24)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: submitLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px rgba(214, 90, 49, 0.3)' }}>
+                {submitLoading ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />Menyimpan...</> : 'Simpan Data Restoran'}
               </button>
-              <button
-                type="button"
-                onClick={() => setFormModalOpen(false)}
-                style={{
-                  padding: '12px 20px', background: '#F8F9FA', color: '#4A5568',
-                  border: '1px solid #E2E8F0', borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: 'pointer',
-                }}
-              >
+              <button type="button" onClick={() => setFormModalOpen(false)} style={{ padding: '12px 20px', background: '#F8F9FA', color: '#4A5568', border: '1px solid #E2E8F0', borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
                 Batal
               </button>
             </div>
@@ -590,53 +449,27 @@ export default function AdminDashboardPage() {
       </div>
 
       <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
-        }
-        @media (max-width: 600px) {
-          .form-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr !important; } }
       `}</style>
     </div>
   );
 }
 
 const thStyle: React.CSSProperties = {
-  padding: '14px 20px',
-  fontSize: 12,
-  fontWeight: 700,
-  color: '#718096',
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-  borderBottom: '2px solid #F1F5F9',
+  padding: '14px 20px', fontSize: 12, fontWeight: 700, color: '#718096',
+  textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '2px solid #F1F5F9',
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: '16px 20px',
-  fontSize: 13,
-  color: '#4A5568',
-  verticalAlign: 'middle',
+  padding: '16px 20px', fontSize: 13, color: '#4A5568', verticalAlign: 'middle',
 };
 
 const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: 12,
-  fontWeight: 700,
-  color: '#4A5568',
-  marginBottom: 6,
+  display: 'block', fontSize: 12, fontWeight: 700, color: '#4A5568', marginBottom: 6,
 };
 
 const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '10px 12px',
-  borderRadius: 8,
-  border: '1px solid #E2E8F0',
-  fontSize: 13,
-  color: '#1A1A2E',
-  background: '#fff',
-  outline: 'none',
-  boxSizing: 'border-box',
+  width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #E2E8F0',
+  fontSize: 13, color: '#1A1A2E', background: '#fff', outline: 'none', boxSizing: 'border-box',
 };

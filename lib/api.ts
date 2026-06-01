@@ -5,7 +5,7 @@ export const API_BASE =
 // ─── Token Helper ─────────────────────────────────────────────────────────────
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('lth_token');
+  return localStorage.getItem('lth_token') || localStorage.getItem('access_token');
 }
 
 // ─── Core Fetch ───────────────────────────────────────────────────────────────
@@ -33,13 +33,14 @@ export async function apiFetch<T = unknown>(
   const json = await res.json();
 
   if (!res.ok) {
+    console.error("❌ ERROR DARI RAILWAY:", json);
     // NestJS validation errors can be an array in json.message
     const msg =
       typeof json.message === 'string'
         ? json.message
         : Array.isArray(json.message)
-        ? json.message[0]
-        : 'Terjadi kesalahan pada server.';
+          ? json.message[0]
+          : 'Terjadi kesalahan pada server.';
     throw new Error(msg);
   }
 

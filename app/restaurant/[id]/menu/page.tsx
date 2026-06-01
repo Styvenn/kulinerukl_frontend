@@ -3,7 +3,7 @@
 import React, { use, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Utensils, Search, Loader2, UtensilsCrossed } from 'lucide-react';
+import { ArrowLeft, Utensils, Search, Loader2, UtensilsCrossed, Plus } from 'lucide-react';
 import { type MenuItem } from '@/lib/data';
 import { apiGet } from '@/lib/api';
 
@@ -84,10 +84,11 @@ export default function MenuPage({ params }: PageProps) {
             </h1>
           </div>
           <Link
-            href={`/restaurant/${id}`}
-            style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 8, whiteSpace: 'nowrap', flexShrink: 0 }}
+            href={`/restaurant/${id}/menu/add`}
+            style={{ fontSize: 12, fontWeight: 700, color: '#fff', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', background: '#D65A31', borderRadius: 8, whiteSpace: 'nowrap', flexShrink: 0 }}
           >
-            Detail Restoran
+            <Plus size={14} />
+            Tambah Menu
           </Link>
         </div>
       </div>
@@ -117,7 +118,7 @@ export default function MenuPage({ params }: PageProps) {
         {/* Loading Skeletons */}
         {loading && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
-            {[1,2,3,4,5,6].map((i) => <SkeletonCard key={i} />)}
+            {[1, 2, 3, 4, 5, 6].map((i) => <SkeletonCard key={i} />)}
           </div>
         )}
 
@@ -145,10 +146,14 @@ export default function MenuPage({ params }: PageProps) {
                 ? `Tidak ada menu yang cocok dengan "${searchQuery}". Coba kata kunci lain.`
                 : 'Menu untuk restoran ini belum tersedia saat ini.'}
             </p>
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} style={{ padding: '10px 24px', background: '#D65A31', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
-                Hapus Pencarian
-              </button>
+            {!searchQuery && (
+              <Link
+                href={`/restaurant/${id}/menu/add`}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 24px', background: '#D65A31', color: '#fff', borderRadius: 8, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
+              >
+                <Plus size={14} />
+                Tambah Menu Baru
+              </Link>
             )}
           </div>
         )}

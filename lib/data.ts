@@ -11,6 +11,8 @@ export type Category =
   | 'western';
 
 export interface MenuItem {
+  [x: string]: string | Blob | undefined | any;
+  imageUrl: any;
   id: string;
   name: string;
   price: number;
