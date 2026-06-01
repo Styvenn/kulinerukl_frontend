@@ -217,7 +217,6 @@ export default function TambahMenuPage({ params }: PageProps) {
             fd.append('price', String(Number(form.price)));
             fd.append('stock', String(Number(form.stock)));
             fd.append('culinaryPlaceId', id);
-            fd.append('isAvailable', String(form.isAvailable));
             if (form.image) fd.append('image', form.image);
 
             // Sesuaikan endpoint dengan backend NestJS kamu

@@ -204,7 +204,6 @@ function MenuFormModal({ isOpen, onClose, editingItem, restaurantId, onSuccess }
       fd.append('price', String(Number(form.price.replace(/\D/g, ''))));
       fd.append('stock', String(Number(form.stock)));
       fd.append('culinaryPlaceId', restaurantId);
-      fd.append('isAvailable', String(form.isAvailable));
       if (form.image) fd.append('image', form.image);
 
       if (editingItem) {
