@@ -10,8 +10,12 @@ import { CATEGORY_LABEL, PRICE_LABEL } from '@/lib/data';
 
 export default function BookmarksPage() {
   const { role, bookmarks, toggleBookmark } = useAuth();
-  const { restaurants } = useRestaurant();
+  const { restaurants, refetch } = useRestaurant();
   const { success } = useToast();
+
+  React.useEffect(() => {
+    refetch({ limit: 100 });
+  }, [refetch]);
 
   // Find bookmarked restaurants
   const bookmarkedRestaurants = useMemo(() => {

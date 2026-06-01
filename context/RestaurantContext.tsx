@@ -7,44 +7,58 @@ import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
 // ─── Context Value Interface ──────────────────────────────────────────────────
 interface RestaurantContextValue {
   restaurants: Restaurant[];
+  meta: PaginationMeta | null;
   loading: boolean;
   apiError: string | null;
-  refetch: () => Promise<void>;
+  refetch: (params?: Record<string, any>) => Promise<void>;
   addRestaurant: (data: Omit<Restaurant, 'id' | 'rating' | 'reviewCount' | 'reviews' | 'slug' | 'isActive' | 'category' | 'menu'>) => Promise<void>;
   updateRestaurant: (id: string, updatedFields: Partial<Restaurant>) => Promise<void>;
   deleteRestaurant: (id: string) => Promise<void>;
   addReview: (restaurantId: string, reviewData: Omit<Review, 'id' | 'date' | 'userAvatar'>) => Promise<void>;
 }
 // ─── API Response Shape ───────────────────────────────────────────────────────
+interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 // Backend may return paginated or plain array — handle both
 interface CulinaryListResponse {
   data?: Restaurant[];
   items?: Restaurant[];
+  meta?: PaginationMeta;
 }
 
 const RestaurantContext = createContext<RestaurantContextValue | null>(null);
 
 export function RestaurantProvider({ children }: { children: React.ReactNode }) {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
 
   // ─── Load Restaurants ──────────────────────────────────────────────────────
-  const refetch = useCallback(async () => {
+  const refetch = useCallback(async (params?: Record<string, any>) => {
     setLoading(true);
     setApiError(null);
     try {
-      // Backend may return { data: [...] } (paginated) or plain array
-      const raw = await apiGet<Restaurant[] | CulinaryListResponse>('/culinary');
+      const queryString = params ? '?' + new URLSearchParams(Object.entries(params).filter(([_, v]) => v !== undefined && v !== 'all' && v !== '').map(([k, v]) => [k, String(v)])).toString() : '?limit=100'; // Default limit 100 for global fetching if no params
+      const raw = await apiGet<Restaurant[] | CulinaryListResponse>(`/culinary${queryString}`);
       let list: Restaurant[];
       if (Array.isArray(raw)) {
         list = raw;
+        setMeta(null);
       } else if (Array.isArray((raw as CulinaryListResponse).data)) {
         list = (raw as CulinaryListResponse).data!;
+        setMeta((raw as CulinaryListResponse).meta || null);
       } else if (Array.isArray((raw as CulinaryListResponse).items)) {
         list = (raw as CulinaryListResponse).items!;
+        setMeta((raw as CulinaryListResponse).meta || null);
       } else {
         list = [];
+        setMeta(null);
       }
       setRestaurants(list);
     } catch (err) {
@@ -56,7 +70,7 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   useEffect(() => {
-    refetch();
+    refetch(); // Initial fetch gets limit=100
   }, [refetch]);
 
   // ─── Add Restaurant (ADMIN) ───────────────────────────────────────────────
@@ -107,6 +121,7 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
     <RestaurantContext.Provider
       value={{
         restaurants,
+        meta,
         loading,
         apiError,
         refetch,

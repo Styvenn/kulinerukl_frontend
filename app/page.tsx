@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Search,
@@ -31,6 +31,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRestaurant } from '@/context/RestaurantContext';
 import { useToast } from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
+import { Pagination } from '@/components/ui/Pagination';
 
 // ─── Category Config ──────────────────────────────────────────────────────────
 const CATEGORIES: { id: Category | 'all'; label: string; icon: React.ElementType }[] = [
@@ -329,7 +330,7 @@ function RandomPickModal({
 export default function HomePage() {
   const { role, toggleBookmark, isBookmarked } = useAuth();
   const { success, error } = useToast();
-  const { restaurants } = useRestaurant();
+  const { restaurants, meta, refetch } = useRestaurant();
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -344,24 +345,41 @@ export default function HomePage() {
   const [randomModalOpen, setRandomModalOpen] = useState(false);
   const [randomRestaurant, setRandomRestaurant] = useState<Restaurant | null>(null);
 
-  // Filtered restaurants
-  const filtered = useMemo(() => {
-    return restaurants.filter((r) => {
-      const q = searchQuery.toLowerCase();
-      const matchSearch =
-        !q ||
-        r.name.toLowerCase().includes(q) ||
-        r.description.toLowerCase().includes(q) ||
-        r.menu?.some((m) => m.name.toLowerCase().includes(q));
-      const matchCat = activeCategory === 'all' || r.category?.slug === activeCategory || r.category === activeCategory || r.categories?.includes(activeCategory);
-      const matchPrice = priceFilter === 'all' || r.priceRange === priceFilter;
-      const matchDistrict = districtFilter === 'all' || r.district === districtFilter;
-      const matchRating = r.rating >= minRating;
-      const matchAmbiance =
-        ambianceFilter === 'all' || r.ambiance.includes(ambianceFilter as 'indoor' | 'outdoor');
-      return matchSearch && matchCat && matchPrice && matchDistrict && matchRating && matchAmbiance;
-    });
-  }, [restaurants, searchQuery, activeCategory, priceFilter, districtFilter, minRating, ambianceFilter]);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
+
+  // Server-side fetching
+  useEffect(() => {
+    const params: Record<string, any> = {
+      page: currentPage,
+      limit: ITEMS_PER_PAGE,
+      search: searchQuery || undefined,
+      categoryId: activeCategory !== 'all' ? activeCategory : undefined,
+      district: districtFilter !== 'all' ? districtFilter : undefined,
+      ambiance: ambianceFilter !== 'all' ? ambianceFilter : undefined,
+      minRating: minRating > 0 ? minRating : undefined,
+    };
+
+    if (priceFilter === 'budget') {
+      params.maxPrice = 30000;
+    } else if (priceFilter === 'mid') {
+      params.minPrice = 30000;
+      params.maxPrice = 75000;
+    } else if (priceFilter === 'premium') {
+      params.minPrice = 75000;
+    }
+
+    refetch(params);
+  }, [refetch, currentPage, searchQuery, activeCategory, priceFilter, districtFilter, ambianceFilter, minRating]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeCategory, priceFilter, districtFilter, minRating, ambianceFilter]);
+
+  const totalPages = meta?.totalPages || 1;
+  const paginatedData = restaurants;
 
   const handleBookmark = useCallback(
     async (id: string) => {
@@ -595,7 +613,7 @@ export default function HomePage() {
               }}
             >
               <p style={{ color: '#718096', fontSize: 14 }}>
-                <span style={{ fontWeight: 700, color: '#1A1A2E' }}>{filtered.length}</span> restoran ditemukan
+                <span style={{ fontWeight: 700, color: '#1A1A2E' }}>{meta?.total || 0}</span> restoran ditemukan
               </p>
               {/* Mobile filter toggle */}
               <button
@@ -616,7 +634,7 @@ export default function HomePage() {
               </button>
             </div>
 
-            {filtered.length === 0 ? (
+            {paginatedData.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px 20px' }}>
                 <p style={{ fontSize: 48, marginBottom: 12 }}>🍽️</p>
                 <h3 style={{ fontSize: 18, fontWeight: 700, color: '#2D3748', marginBottom: 6 }}>
@@ -636,21 +654,30 @@ export default function HomePage() {
                 </button>
               </div>
             ) : (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                  gap: 20,
-                }}
-              >
-                {filtered.map((r) => (
-                  <RestaurantCard
-                    key={r.id}
-                    restaurant={r}
-                    onBookmark={handleBookmark}
-                    isBookmarked={isBookmarked(r.id)}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                    gap: 20,
+                  }}
+                >
+                  {paginatedData.map((r) => (
+                    <RestaurantCard
+                      key={r.id}
+                      restaurant={r}
+                      onBookmark={handleBookmark}
+                      isBookmarked={isBookmarked(r.id)}
+                    />
+                  ))}
+                </div>
+                {totalPages > 1 && (
+                  <Pagination 
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
                   />
-                ))}
+                )}
               </div>
             )}
           </div>

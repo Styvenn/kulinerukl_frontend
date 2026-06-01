@@ -36,9 +36,13 @@ const DISTRICT_COORDS: Record<string, { x: number; y: number; color: string }> =
 };
 
 export default function ExplorePage() {
-  const { restaurants } = useRestaurant();
+  const { restaurants, refetch } = useRestaurant();
   const { role, toggleBookmark, isBookmarked } = useAuth();
   const { success, error } = useGlobalToast();
+
+  React.useEffect(() => {
+    refetch({ limit: 100 });
+  }, [refetch]);
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState('');

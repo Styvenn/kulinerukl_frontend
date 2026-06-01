@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { apiGet, apiPost } from '@/lib/api';
 import { DISTRICTS, CATEGORY_LABEL, PRICE_LABEL, type Category, type PriceRange, type Ambiance, type Restaurant } from '@/lib/data';
+import { Pagination } from '@/components/ui/Pagination';
 
 const MOCK_IMAGE_PRESETS = [
   'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&auto=format&fit=crop&q=60',
@@ -31,8 +32,12 @@ const MOCK_IMAGE_PRESETS = [
 
 export default function AdminDashboardPage() {
   const { role } = useAuth();
-  const { restaurants, addRestaurant, updateRestaurant, deleteRestaurant } = useRestaurant();
+  const { restaurants, addRestaurant, updateRestaurant, deleteRestaurant, refetch } = useRestaurant();
   const { success, error } = useToast();
+
+  React.useEffect(() => {
+    refetch({ limit: 100 });
+  }, [refetch]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -53,6 +58,10 @@ export default function AdminDashboardPage() {
   const [formImage, setFormImage] = useState(MOCK_IMAGE_PRESETS[0]);
   const [submitLoading, setSubmitLoading] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
+
   // ✅ useMemo dipindah ke sini — sebelum early return
   const stats = useMemo(() => {
     const total = restaurants.length;
@@ -71,6 +80,12 @@ export default function AdminDashboardPage() {
         (r.category?.name ?? r.category ?? '').toLowerCase().includes(q);
     });
   }, [restaurants, searchQuery]);
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
 
   // ✅ Authorization Check setelah semua hooks
   if (role !== 'admin') {
@@ -145,8 +160,9 @@ export default function AdminDashboardPage() {
 
     try {
       // Fetch or create the category dynamically
-      const categories = await apiGet<any[]>('/categories');
-      let targetCat = categories.find((c: any) => c.slug === formCategory);
+      const categoriesResponse = await apiGet<any>('/categories');
+      const categoriesArray = Array.isArray(categoriesResponse) ? categoriesResponse : (categoriesResponse?.data || []);
+      let targetCat = categoriesArray.find((c: any) => c.slug === formCategory);
       if (!targetCat) {
         targetCat = await apiPost('/categories', {
           name: CATEGORY_LABEL[formCategory as Category] || formCategory,
@@ -286,7 +302,10 @@ export default function AdminDashboardPage() {
                 type="text"
                 placeholder="Cari nama, kecamatan..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
                 style={{
                   width: '100%', padding: '8px 12px 8px 34px', borderRadius: 8,
                   border: '1px solid #E2E8F0', fontSize: 13, outline: 'none',
@@ -310,14 +329,14 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {paginatedData.length === 0 ? (
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#A0AEC0', fontSize: 13 }}>
                       Tidak ada data restoran ditemukan.
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((rest) => (
+                  paginatedData.map((rest) => (
                     <tr key={rest.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s' }}>
                       <td style={tdStyle}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -383,6 +402,16 @@ export default function AdminDashboardPage() {
               </tbody>
             </table>
           </div>
+
+          {totalPages > 1 && (
+            <div style={{ borderTop: '1px solid #F1F5F9', padding: '16px 24px', background: '#fff' }}>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
         </section>
 
         {/* DELETE CONFIRMATION MODAL */}
