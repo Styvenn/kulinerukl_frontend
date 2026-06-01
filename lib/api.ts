@@ -21,10 +21,13 @@ export async function apiFetch<T = unknown>(
 ): Promise<T> {
   const token = getToken();
 
+  // If body is FormData, let the browser set Content-Type with boundary automatically
+  const isFormData = options.body instanceof FormData;
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
@@ -33,7 +36,6 @@ export async function apiFetch<T = unknown>(
   const json = await res.json();
 
   if (!res.ok) {
-    console.error("❌ ERROR DARI RAILWAY:", json);
     // NestJS validation errors can be an array in json.message
     const msg =
       typeof json.message === 'string'
@@ -53,14 +55,22 @@ export async function apiFetch<T = unknown>(
 /** GET helper */
 export const apiGet = <T>(path: string) => apiFetch<T>(path, { method: 'GET' });
 
-/** POST helper */
+/** POST helper (JSON) */
 export const apiPost = <T>(path: string, body: unknown) =>
   apiFetch<T>(path, { method: 'POST', body: JSON.stringify(body) });
 
-/** PATCH helper */
+/** PATCH helper (JSON) */
 export const apiPatch = <T>(path: string, body: unknown) =>
   apiFetch<T>(path, { method: 'PATCH', body: JSON.stringify(body) });
 
 /** DELETE helper */
 export const apiDelete = <T>(path: string) =>
   apiFetch<T>(path, { method: 'DELETE' });
+
+/** POST helper (multipart/form-data) */
+export const apiFormPost = <T>(path: string, formData: FormData) =>
+  apiFetch<T>(path, { method: 'POST', body: formData });
+
+/** PATCH helper (multipart/form-data) */
+export const apiFormPatch = <T>(path: string, formData: FormData) =>
+  apiFetch<T>(path, { method: 'PATCH', body: formData });

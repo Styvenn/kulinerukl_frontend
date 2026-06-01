@@ -13,7 +13,7 @@ import {
     Loader2,
     ImagePlus,
 } from 'lucide-react';
-import { apiPost } from '@/lib/api'; // sesuaikan path helper API kamu
+import { apiFormPost } from '@/lib/api'; // sesuaikan path helper API kamu
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -211,17 +211,17 @@ export default function TambahMenuPage({ params }: PageProps) {
         setSubmitError('');
 
         try {
-            const payload = {
-                name: form.name.trim(),
-                description: form.description.trim(),
-                price: Number(form.price),
-                stock: Number(form.stock),
-                imageUrl: '',
-                culinaryPlaceId: id,
-            };
+            const fd = new FormData();
+            fd.append('name', form.name.trim());
+            fd.append('description', form.description.trim());
+            fd.append('price', String(Number(form.price)));
+            fd.append('stock', String(Number(form.stock)));
+            fd.append('culinaryPlaceId', id);
+            fd.append('isAvailable', String(form.isAvailable));
+            if (form.image) fd.append('image', form.image);
 
             // Sesuaikan endpoint dengan backend NestJS kamu
-            await apiPost(`/menus`, payload);
+            await apiFormPost(`/menus`, fd);
 
 
             setSubmitState('success');

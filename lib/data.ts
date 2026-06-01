@@ -11,12 +11,16 @@ export type Category =
   | 'western';
 
 export interface MenuItem {
-  [x: string]: string | Blob | undefined | any;
-  imageUrl: any;
   id: string;
   name: string;
   price: number;
   description: string;
+  imageUrl?: string;
+  stock?: number;
+  category?: string;
+  isAvailable?: boolean;
+  culinaryPlaceId?: string;
+  [x: string]: unknown;
 }
 
 export interface Review {

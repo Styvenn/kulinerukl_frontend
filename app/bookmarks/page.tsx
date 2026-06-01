@@ -10,8 +10,12 @@ import { CATEGORY_LABEL, PRICE_LABEL } from '@/lib/data';
 
 export default function BookmarksPage() {
   const { role, bookmarks, toggleBookmark } = useAuth();
-  const { restaurants } = useRestaurant();
+  const { restaurants, refetch } = useRestaurant();
   const { success } = useToast();
+
+  React.useEffect(() => {
+    refetch({ limit: 100 });
+  }, [refetch]);
 
   // Find bookmarked restaurants
   const bookmarkedRestaurants = useMemo(() => {
@@ -71,7 +75,7 @@ export default function BookmarksPage() {
   return (
     <div style={{ background: '#F8F9FA', minHeight: '100vh', padding: '40px 20px 80px' }}>
       <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-        
+
         {/* Header */}
         <div style={{ borderBottom: '1px solid #E2E8F0', paddingBottom: 24, marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -135,7 +139,7 @@ export default function BookmarksPage() {
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                   <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 60%)' }} />
-                  
+
                   {/* Remove Bookmark */}
                   <button
                     onClick={() => handleRemoveBookmark(rest.id, rest.name)}
@@ -153,7 +157,7 @@ export default function BookmarksPage() {
                   <span style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(11,47,53,0.85)', color: '#fff', fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20 }}>
                     {rest.category?.name}
                   </span>
-                  
+
                   <span style={{ position: 'absolute', bottom: 12, right: 12, background: 'rgba(214,90,49,0.92)', color: '#fff', fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20 }}>
                     {PRICE_LABEL[rest.priceRange]}
                   </span>

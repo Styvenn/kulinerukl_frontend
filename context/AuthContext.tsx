@@ -64,8 +64,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ─── Load Bookmarks ──────────────────────────────────────────────────────────
   const loadBookmarks = useCallback(async () => {
     try {
-      const data = await apiGet<BookmarkItem[]>('/bookmarks');
-      const ids = (data ?? []).map((b) => b.culinaryPlaceId);
+      const res: any = await apiGet('/bookmarks');
+      const data = Array.isArray(res) ? res : (res?.data || []);
+      const ids = data.map((b: any) => b.culinaryPlaceId);
       setBookmarks(ids);
     } catch {
       // Non-critical: silently fail (guest or token expired)
@@ -75,9 +76,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Login ───────────────────────────────────────────────────────────────────
   const login = useCallback(async (email: string, password: string) => {
-    const data = await apiPost<LoginResponse>('/auth/login', { email, password });
+    const res = await apiPost<any>('/auth/login', { email, password });
+    const responseData = res.data || res;
 
-    const { access_token, user: userProfile } = data;
+    const { access_token, user: userProfile } = responseData;
 
     // Persist session
     localStorage.setItem('lth_token', access_token);

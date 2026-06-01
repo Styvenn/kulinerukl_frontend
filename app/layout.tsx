@@ -1,18 +1,9 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { RestaurantProvider } from '@/context/RestaurantContext';
 import { ToastProvider } from '@/components/ui/Toast';
 import Navbar from '@/components/layouts/Navbar';
-
-// ─── Font ──────────────────────────────────────────────────────────────────
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
-  weight: ['400', '500', '600', '700', '800'],
-});
 
 // ─── Metadata ──────────────────────────────────────────────────────────────
 export const metadata: Metadata = {
@@ -40,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id" className={inter.variable}>
+    <html lang="id" data-scroll-behavior="smooth">
       <body>
         <AuthProvider>
           <RestaurantProvider>
