@@ -134,10 +134,10 @@ export default function SignInPage() {
             </div>
             <div style={{ display: 'flex', gap: 16 }}>
               <button
-                onClick={() => { setEmail('user@mail.com'); setPassword('user123'); }}
+                onClick={() => { setEmail('user@gmail.com'); setPassword('user123'); }}
                 style={{ fontSize: 11, color: '#2B6CB0', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600 }}
               >
-                👤 User: user@mail.com / user123
+                👤 User: user@gmail.com / user123
               </button>
             </div>
             <div>
@@ -145,7 +145,7 @@ export default function SignInPage() {
                 onClick={() => { setEmail('admin@mail.com'); setPassword('admin123'); }}
                 style={{ fontSize: 11, color: '#D65A31', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600 }}
               >
-                🛡️ Admin: admin@mail.com / admin123
+                🛡️ Admin: admin@gmail.com / admin123
               </button>
             </div>
           </div>
@@ -165,7 +165,7 @@ export default function SignInPage() {
                 <input
                   id="signin-email"
                   type="email"
-                  placeholder="nama@email.com"
+                  placeholder="nama@gmail.com"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
                   style={{
@@ -273,11 +273,11 @@ export default function SignInPage() {
       </div>
 
       <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
-        }
-      `}</style>
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+          }
+        `}</style>
     </div>
   );
 }
