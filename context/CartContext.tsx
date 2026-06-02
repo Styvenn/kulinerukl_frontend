@@ -8,6 +8,7 @@ export interface CartItem {
   menuImage?: string;
   price: number;
   qty: number;
+  stock: number;
   restaurantId: string;
   restaurantName: string;
 }
@@ -45,10 +46,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const existing = prev.find((i) => i.menuId === item.menuId);
       let newItems;
       if (existing) {
+        if (existing.qty >= existing.stock) return prev;
         newItems = prev.map((i) =>
           i.menuId === item.menuId ? { ...i, qty: i.qty + 1 } : i
         );
       } else {
+        if (item.stock < 1) return prev;
         newItems = [...prev, { ...item, qty: 1 }];
       }
       localStorage.setItem('lth_cart', JSON.stringify(newItems));
@@ -67,6 +70,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const updateQty = useCallback((menuId: string, qty: number) => {
     if (qty < 1) return;
     setItems((prev) => {
+      const existing = prev.find((i) => i.menuId === menuId);
+      if (existing && qty > existing.stock) return prev;
+      
       const newItems = prev.map((i) =>
         i.menuId === menuId ? { ...i, qty } : i
       );

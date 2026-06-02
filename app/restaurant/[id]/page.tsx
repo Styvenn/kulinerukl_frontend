@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { use, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
@@ -295,19 +295,6 @@ export default function RestaurantDetailPage({ params }: PageProps) {
                 <Link href={`/restaurant/${id}/menu`} style={{ padding: '11px', background: 'linear-gradient(135deg,#D65A31,#B84A24)', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                   <Utensils size={14} />Lihat Semua Menu
                 </Link>
-              </div>
-            </div>
-            <div style={{ background: '#fff', borderRadius: 16, padding: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
-              <div style={{ borderRadius: 12, overflow: 'hidden', height: 260, background: '#E2E8F0' }}>
-                {restaurant.mapUrl && restaurant.mapUrl.startsWith('https://') ? (
-                  <iframe src={restaurant.mapUrl} width="100%" height="100%" style={{ border: 0 }} allowFullScreen={false} loading="lazy" title={`Peta ${restaurant.name}`} />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg,#E2E8F0,#CBD5E0)', color: '#4A5568', textAlign: 'center', padding: 20 }}>
-                    <MapPin size={36} color="#D65A31" style={{ marginBottom: 10 }} />
-                    <p style={{ fontSize: 12, fontWeight: 700, margin: '0 0 4px' }}>Peta Lokasi</p>
-                    <p style={{ fontSize: 10, color: '#718096', margin: 0 }}>{restaurant.address}</p>
-                  </div>
-                )}
               </div>
             </div>
           </div>

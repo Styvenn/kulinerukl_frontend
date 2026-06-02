@@ -635,7 +635,7 @@ export default function MenuPage({ params }: PageProps) {
                     <img src={item.imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 50%)' }} />
                     {/* Availability badge */}
-                    {item.isAvailable === false && (
+                    {(item.isAvailable === false || (item.stock !== undefined && item.stock <= 0)) && (
                       <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(229,62,62,0.9)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20 }}>
                         Habis
                       </span>
@@ -676,29 +676,50 @@ export default function MenuPage({ params }: PageProps) {
                   {!isAdmin && (
                     <button
                       onClick={() => {
+                        if (item.isAvailable === false || (item.stock !== undefined && item.stock <= 0)) return;
                         addItem({
                           menuId: item.id,
                           menuName: item.name,
                           menuImage: item.imageUrl,
                           price: Number(item.price),
+                          stock: Number(item.stock) || 0,
                           restaurantId: restaurant?.id || id,
                           restaurantName: restaurant?.name || 'Restoran',
                         });
                         toastSuccess('Ditambahkan', `${item.name} ditambahkan ke keranjang.`);
                       }}
+                      disabled={item.isAvailable === false || (item.stock !== undefined && item.stock <= 0) || (cartItems.find((i) => i.menuId === item.id)?.qty || 0) >= (item.stock || 0)}
                       style={{
-                        marginTop: 8, padding: '8px', borderRadius: 8, background: 'rgba(214,90,49,0.15)',
-                        border: '1px solid rgba(214,90,49,0.3)', color: '#D65A31', fontSize: 13,
-                        fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', gap: 6, transition: 'background 0.2s, transform 0.1s',
+                        marginTop: 8, padding: '8px', borderRadius: 8, 
+                        background: (item.isAvailable === false || (item.stock !== undefined && item.stock <= 0) || (cartItems.find((i) => i.menuId === item.id)?.qty || 0) >= (item.stock || 0)) ? '#F1F5F9' : 'rgba(214,90,49,0.15)',
+                        border: (item.isAvailable === false || (item.stock !== undefined && item.stock <= 0) || (cartItems.find((i) => i.menuId === item.id)?.qty || 0) >= (item.stock || 0)) ? '1px solid #E2E8F0' : '1px solid rgba(214,90,49,0.3)', 
+                        color: (item.isAvailable === false || (item.stock !== undefined && item.stock <= 0) || (cartItems.find((i) => i.menuId === item.id)?.qty || 0) >= (item.stock || 0)) ? '#A0AEC0' : '#D65A31', fontSize: 13,
+                        fontWeight: 700, cursor: (item.isAvailable === false || (item.stock !== undefined && item.stock <= 0) || (cartItems.find((i) => i.menuId === item.id)?.qty || 0) >= (item.stock || 0)) ? 'not-allowed' : 'pointer', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'background 0.2s, transform 0.1s',
                         position: 'relative',
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(214,90,49,0.25)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(214,90,49,0.15)')}
-                      onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.97)')}
-                      onMouseUp={(e) => (e.currentTarget.style.transform = 'none')}
+                      onMouseEnter={(e) => {
+                        if (!(item.isAvailable === false || (item.stock !== undefined && item.stock <= 0) || (cartItems.find((i) => i.menuId === item.id)?.qty || 0) >= (item.stock || 0))) {
+                          e.currentTarget.style.background = 'rgba(214,90,49,0.25)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!(item.isAvailable === false || (item.stock !== undefined && item.stock <= 0) || (cartItems.find((i) => i.menuId === item.id)?.qty || 0) >= (item.stock || 0))) {
+                          e.currentTarget.style.background = 'rgba(214,90,49,0.15)';
+                        }
+                      }}
+                      onMouseDown={(e) => {
+                        if (!(item.isAvailable === false || (item.stock !== undefined && item.stock <= 0) || (cartItems.find((i) => i.menuId === item.id)?.qty || 0) >= (item.stock || 0))) {
+                          e.currentTarget.style.transform = 'scale(0.97)';
+                        }
+                      }}
+                      onMouseUp={(e) => {
+                        if (!(item.isAvailable === false || (item.stock !== undefined && item.stock <= 0) || (cartItems.find((i) => i.menuId === item.id)?.qty || 0) >= (item.stock || 0))) {
+                          e.currentTarget.style.transform = 'none';
+                        }
+                      }}
                     >
-                      <ShoppingCart size={14} /> Tambah ke Keranjang
+                      <ShoppingCart size={14} /> {(item.isAvailable === false || (item.stock !== undefined && item.stock <= 0)) ? 'Stok Habis' : ((cartItems.find((i) => i.menuId === item.id)?.qty || 0) >= (item.stock || 0)) ? 'Stok Maksimal' : 'Tambah ke Keranjang'}
                       {cartItems.find((i) => i.menuId === item.id) && (
                         <span style={{
                           position: 'absolute', top: -6, right: -6, background: '#E53E3E',

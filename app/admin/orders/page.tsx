@@ -246,7 +246,7 @@ export default function AdminOrdersPage() {
                             </td>
                             <td style={{ ...tdStyle, textAlign: 'center' }}>
                               <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                                {o.status === 'pending_validation' && (
+                                {(o.status === 'pending_validation' || (o.status === 'pending_payment' && o.paymentMethod === 'cash')) && (
                                   <>
                                     <button onClick={() => handleUpdateStatus(o.id, 'confirmed')} disabled={actionLoading} title="Konfirmasi" style={{ width: 32, height: 32, borderRadius: 8, background: '#F0FDF4', color: '#15803d', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                       <CheckCircle2 size={16} />
@@ -261,7 +261,7 @@ export default function AdminOrdersPage() {
                                     Selesaikan
                                   </button>
                                 )}
-                                {(o.status === 'completed' || o.status === 'rejected' || o.status === 'pending_payment') && (
+                                {(o.status === 'completed' || o.status === 'rejected' || (o.status === 'pending_payment' && o.paymentMethod !== 'cash')) && (
                                   <span style={{ fontSize: 11, color: '#A0AEC0' }}>-</span>
                                 )}
                               </div>

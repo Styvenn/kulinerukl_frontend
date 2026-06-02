@@ -108,7 +108,7 @@ export default function CartPage() {
     try {
       const payload = {
         userId: user?.id,
-        items,
+        items: items.map(({ stock, ...rest }) => rest), // Strip 'stock' to match backend DTO
         totalPrice,
         paymentMethod,
         transferProofUrl,
@@ -214,8 +214,8 @@ export default function CartPage() {
                               </span>
                               <button
                                 onClick={() => updateQty(item.menuId, item.qty + 1)}
-                                disabled={item.qty >= 99}
-                                style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFB', border: 'none', color: item.qty >= 99 ? '#CBD5E0' : '#4A5568', cursor: item.qty >= 99 ? 'not-allowed' : 'pointer' }}
+                                disabled={item.qty >= 99 || item.qty >= item.stock}
+                                style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8FAFB', border: 'none', color: (item.qty >= 99 || item.qty >= item.stock) ? '#CBD5E0' : '#4A5568', cursor: (item.qty >= 99 || item.qty >= item.stock) ? 'not-allowed' : 'pointer' }}
                               >
                                 <Plus size={14} />
                               </button>
