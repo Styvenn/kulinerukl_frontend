@@ -16,8 +16,11 @@ import {
   X,
   MapPin,
   Shield,
+  ShoppingCart,
+  ClipboardList
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 import { useToast } from '@/components/ui/Toast';
 
 // ─── Nav Links ────────────────────────────────────────────────────────────────
@@ -71,7 +74,8 @@ function AvatarPlaceholder({
 // ─── Main Navbar ──────────────────────────────────────────────────────────────
 export default function Navbar() {
   const { user, role, logout } = useAuth();
-  const { success } = useToast();
+  const { totalItems } = useCart();
+  const { success, error } = useToast();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -239,6 +243,29 @@ export default function Navbar() {
             {/* ── GUEST ── */}
             {role === 'guest' && (
               <>
+                {/* Guest Cart Icon */}
+                <button
+                  onClick={() => {
+                    error('Akses Ditolak', 'Silakan login untuk menggunakan keranjang.');
+                    router.push('/sign-in');
+                  }}
+                  title="Keranjang"
+                  style={{
+                    width: 38, height: 38, borderRadius: 10, background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', color: 'rgba(255,255,255,0.75)', cursor: 'pointer',
+                    transition: 'background 0.2s, color 0.2s', position: 'relative'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)'; }}
+                >
+                  <ShoppingCart size={17} />
+                  {totalItems > 0 && (
+                    <span style={{ position: 'absolute', top: -4, right: -4, background: '#E53E3E', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 10, border: '2px solid #0B2F35' }}>
+                      {totalItems}
+                    </span>
+                  )}
+                </button>
                 <Link
                   href="/sign-in"
                   id="nav-btn-signin"
@@ -298,6 +325,26 @@ export default function Navbar() {
             {/* ── USER ── */}
             {role === 'user' && (
               <>
+                {/* User Cart Icon */}
+                <Link
+                  href="/cart"
+                  title="Keranjang Saya"
+                  style={{
+                    width: 38, height: 38, borderRadius: 10, background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', color: 'rgba(255,255,255,0.75)', textDecoration: 'none',
+                    transition: 'background 0.2s, color 0.2s', position: 'relative'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)'; }}
+                >
+                  <ShoppingCart size={17} />
+                  {totalItems > 0 && (
+                    <span style={{ position: 'absolute', top: -4, right: -4, background: '#E53E3E', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 10, border: '2px solid #0B2F35' }}>
+                      {totalItems}
+                    </span>
+                  )}
+                </Link>
                 {/* Bookmark */}
                 <Link
                   href="/bookmarks"
@@ -407,6 +454,7 @@ export default function Navbar() {
                       </div>
                       {/* Links */}
                       <DropdownItem icon={<User size={15} />} label="Profil Saya" href="/profile" />
+                      <DropdownItem icon={<ClipboardList size={15} />} label="Pesanan Saya" href="/orders" />
                       <DropdownItem icon={<Bookmark size={15} />} label="Bookmark Saya" href="/bookmarks" />
                       {/* Logout */}
                       <button
@@ -447,6 +495,26 @@ export default function Navbar() {
             {/* ── ADMIN ── */}
             {role === 'admin' && (
               <>
+                {/* Admin Cart Icon */}
+                <Link
+                  href="/cart"
+                  title="Keranjang Saya"
+                  style={{
+                    width: 38, height: 38, borderRadius: 10, background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', color: 'rgba(255,255,255,0.75)', textDecoration: 'none',
+                    transition: 'background 0.2s, color 0.2s', position: 'relative'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = '#fff'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)'; }}
+                >
+                  <ShoppingCart size={17} />
+                  {totalItems > 0 && (
+                    <span style={{ position: 'absolute', top: -4, right: -4, background: '#E53E3E', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 10, border: '2px solid #0B2F35' }}>
+                      {totalItems}
+                    </span>
+                  )}
+                </Link>
                 {/* Analytics */}
                 <Link
                   href="/admin/analytics"
@@ -554,6 +622,7 @@ export default function Navbar() {
                         </div>
                         <p style={{ fontWeight: 700, fontSize: 14, color: '#1A1A2E', margin: '4px 0 0' }}>{user?.name}</p>
                       </div>
+                      <DropdownItem icon={<ClipboardList size={15} />} label="Kelola Order" href="/admin/orders" />
                       <button
                         id="nav-admin-btn-logout"
                         onClick={handleLogout}
@@ -642,6 +711,26 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
+
+            <Link
+              href={role === 'guest' ? '/sign-in' : '/cart'}
+              onClick={(e) => {
+                if (role === 'guest') {
+                  e.preventDefault();
+                  error('Akses Ditolak', 'Silakan login untuk menggunakan keranjang.');
+                  router.push('/sign-in');
+                }
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+                borderRadius: 10, color: isActive('/cart') ? '#D65A31' : 'rgba(255,255,255,0.8)',
+                fontWeight: isActive('/cart') ? 600 : 500, fontSize: 15, textDecoration: 'none',
+                background: isActive('/cart') ? 'rgba(214,90,49,0.1)' : 'transparent', marginBottom: 2,
+              }}
+            >
+              <ShoppingCart size={15} style={{ opacity: 0.5 }} />
+              Keranjang ({totalItems})
+            </Link>
 
             {role === 'guest' && (
               <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>

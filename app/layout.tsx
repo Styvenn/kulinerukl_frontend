@@ -3,6 +3,7 @@ import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { RestaurantProvider } from '@/context/RestaurantContext';
 import { ToastProvider } from '@/components/ui/Toast';
+import { CartProvider } from '@/context/CartContext';
 import Navbar from '@/components/layouts/Navbar';
 
 // ─── Metadata ──────────────────────────────────────────────────────────────
@@ -36,10 +37,12 @@ export default function RootLayout({
         <AuthProvider>
           <RestaurantProvider>
             <ToastProvider>
-              <Navbar />
-              <main id="main-content" role="main">
-                {children}
-              </main>
+              <CartProvider>
+                <Navbar />
+                <main id="main-content" role="main">
+                  {children}
+                </main>
+              </CartProvider>
             </ToastProvider>
           </RestaurantProvider>
         </AuthProvider>

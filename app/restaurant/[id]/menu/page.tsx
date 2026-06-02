@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Utensils, Search, Loader2, UtensilsCrossed, Plus,
   Pencil, Trash2, X, CheckCircle2, AlertCircle, Upload, ImagePlus,
-  Package, ChefHat,
+  Package, ChefHat, ShoppingCart
 } from 'lucide-react';
 import { type MenuItem } from '@/lib/data';
 import { apiGet, apiDelete, apiFormPost, apiFormPatch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
+import { useCart } from '@/context/CartContext';
 import Modal from '@/components/ui/Modal';
 
 interface PageProps {
@@ -455,6 +456,7 @@ export default function MenuPage({ params }: PageProps) {
   const router = useRouter();
   const { role } = useAuth();
   const { success: toastSuccess, error: toastError } = useToast();
+  const { items: cartItems, addItem } = useCart();
   const isAdmin = role === 'admin';
 
   const [restaurant, setRestaurant] = useState<RestaurantBasic | null>(null);
@@ -670,6 +672,42 @@ export default function MenuPage({ params }: PageProps) {
                       </span>
                     )}
                   </div>
+
+                  <button
+                    onClick={() => {
+                      addItem({
+                        menuId: item.id,
+                        menuName: item.name,
+                        menuImage: item.imageUrl,
+                        price: Number(item.price),
+                        restaurantId: restaurant?.id || id,
+                        restaurantName: restaurant?.name || 'Restoran',
+                      });
+                      toastSuccess('Ditambahkan', `${item.name} ditambahkan ke keranjang.`);
+                    }}
+                    style={{
+                      marginTop: 8, padding: '8px', borderRadius: 8, background: 'rgba(214,90,49,0.15)',
+                      border: '1px solid rgba(214,90,49,0.3)', color: '#D65A31', fontSize: 13,
+                      fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', gap: 6, transition: 'background 0.2s, transform 0.1s',
+                      position: 'relative',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(214,90,49,0.25)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(214,90,49,0.15)')}
+                    onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.97)')}
+                    onMouseUp={(e) => (e.currentTarget.style.transform = 'none')}
+                  >
+                    <ShoppingCart size={14} /> Tambah ke Keranjang
+                    {cartItems.find((i) => i.menuId === item.id) && (
+                      <span style={{
+                        position: 'absolute', top: -6, right: -6, background: '#E53E3E',
+                        color: '#fff', fontSize: 10, fontWeight: 800, padding: '2px 6px',
+                        borderRadius: 12, border: '2px solid #1E5260',
+                      }}>
+                        {cartItems.find((i) => i.menuId === item.id)?.qty}
+                      </span>
+                    )}
+                  </button>
 
                   {/* Admin Action Buttons */}
                   {isAdmin && (
