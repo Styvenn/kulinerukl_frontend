@@ -85,7 +85,6 @@ export default function CartPage() {
         paymentMethod,
         transferProofUrl,
         status: paymentMethod === 'cash' ? 'pending_payment' : 'pending_validation',
-        createdAt: new Date().toISOString(),
       };
 
       await apiPost('/orders', payload);
