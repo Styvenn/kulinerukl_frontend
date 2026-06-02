@@ -495,26 +495,6 @@ export default function Navbar() {
             {/* ── ADMIN ── */}
             {role === 'admin' && (
               <>
-                {/* Admin Cart Icon */}
-                <Link
-                  href="/cart"
-                  title="Keranjang Saya"
-                  style={{
-                    width: 38, height: 38, borderRadius: 10, background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', color: 'rgba(255,255,255,0.75)', textDecoration: 'none',
-                    transition: 'background 0.2s, color 0.2s', position: 'relative'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = '#fff'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)'; }}
-                >
-                  <ShoppingCart size={17} />
-                  {totalItems > 0 && (
-                    <span style={{ position: 'absolute', top: -4, right: -4, background: '#E53E3E', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 10, border: '2px solid #0B2F35' }}>
-                      {totalItems}
-                    </span>
-                  )}
-                </Link>
                 {/* Analytics */}
                 <Link
                   href="/admin/analytics"
@@ -712,25 +692,27 @@ export default function Navbar() {
               </Link>
             ))}
 
-            <Link
-              href={role === 'guest' ? '/sign-in' : '/cart'}
-              onClick={(e) => {
-                if (role === 'guest') {
-                  e.preventDefault();
-                  error('Akses Ditolak', 'Silakan login untuk menggunakan keranjang.');
-                  router.push('/sign-in');
-                }
-              }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
-                borderRadius: 10, color: isActive('/cart') ? '#D65A31' : 'rgba(255,255,255,0.8)',
-                fontWeight: isActive('/cart') ? 600 : 500, fontSize: 15, textDecoration: 'none',
-                background: isActive('/cart') ? 'rgba(214,90,49,0.1)' : 'transparent', marginBottom: 2,
-              }}
-            >
-              <ShoppingCart size={15} style={{ opacity: 0.5 }} />
-              Keranjang ({totalItems})
-            </Link>
+            {role !== 'admin' && (
+              <Link
+                href={role === 'guest' ? '/sign-in' : '/cart'}
+                onClick={(e) => {
+                  if (role === 'guest') {
+                    e.preventDefault();
+                    error('Akses Ditolak', 'Silakan login untuk menggunakan keranjang.');
+                    router.push('/sign-in');
+                  }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+                  borderRadius: 10, color: isActive('/cart') ? '#D65A31' : 'rgba(255,255,255,0.8)',
+                  fontWeight: isActive('/cart') ? 600 : 500, fontSize: 15, textDecoration: 'none',
+                  background: isActive('/cart') ? 'rgba(214,90,49,0.1)' : 'transparent', marginBottom: 2,
+                }}
+              >
+                <ShoppingCart size={15} style={{ opacity: 0.5 }} />
+                Keranjang ({totalItems})
+              </Link>
+            )}
 
             {role === 'guest' && (
               <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>

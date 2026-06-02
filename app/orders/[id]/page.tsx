@@ -23,6 +23,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   // Form states for re-upload
   const [transferProofUrl, setTransferProofUrl] = useState<string>('');
@@ -154,7 +155,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           {/* Print Button */}
           {order.status === 'completed' && (
             <button
-              onClick={() => generateReceiptPDF(order)}
+              onClick={() => setShowPreview(true)}
               style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'linear-gradient(135deg, #D65A31, #B84A24)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 4px 14px rgba(214, 90, 49, 0.3)' }}
             >
               <Printer size={16} /> Cetak Struk PDF
@@ -301,7 +302,151 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           
         </div>
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      {/* ── Receipt Preview Modal ─────────────────────────────────────────── */}
+      {showPreview && order && (
+        <div
+          onClick={() => setShowPreview(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9000,
+            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px', animation: 'fadeIn 0.2s ease',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#fff', borderRadius: 20, width: '100%', maxWidth: 480,
+              boxShadow: '0 24px 60px rgba(0,0,0,0.25)',
+              display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden',
+              animation: 'slideUp 0.25s cubic-bezier(0.16,1,0.3,1)',
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid #F1F5F9' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(214,90,49,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Printer size={17} color="#D65A31" />
+                </div>
+                <span style={{ fontSize: 16, fontWeight: 800, color: '#1A1A2E' }}>Pratinjau Struk</span>
+              </div>
+              <button
+                onClick={() => setShowPreview(false)}
+                style={{ width: 32, height: 32, borderRadius: '50%', background: '#F1F5F9', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#718096' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Scrollable Receipt Preview */}
+            <div style={{ overflowY: 'auto', padding: '20px 22px', flex: 1 }}>
+              {/* Receipt Card */}
+              <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+
+                {/* Receipt Header Banner */}
+                <div style={{ background: 'linear-gradient(135deg, #1E5260, #0B2F35)', padding: '20px 24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                    <ClipboardList size={20} color="#D65A31" />
+                    <span style={{ fontSize: 17, fontWeight: 900, color: '#fff' }}>Local Taste Hub — Struk Pesanan</span>
+                  </div>
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: 0 }}>Dokumen resmi bukti transaksi kuliner</p>
+                </div>
+
+                {/* Receipt Body */}
+                <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+
+                  {/* Informasi Pesanan */}
+                  <p style={{ fontSize: 10, fontWeight: 800, color: '#A0AEC0', letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 12px' }}>Informasi Pesanan</p>
+                  {[
+                    { label: 'No. Order', value: `#${order.id.slice(-8).toUpperCase()}` },
+                    { label: 'Tanggal', value: new Date(order.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) },
+                    { label: 'Metode Bayar', value: order.paymentMethod === 'cash' ? 'Cash / Tunai' : 'Transfer Bank' },
+                  ].map((row) => (
+                    <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #F7FAFC' }}>
+                      <span style={{ fontSize: 13, color: '#718096' }}>{row.label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A2E', textAlign: 'right', maxWidth: '60%' }}>{row.value}</span>
+                    </div>
+                  ))}
+
+                  {/* Daftar Menu */}
+                  <p style={{ fontSize: 10, fontWeight: 800, color: '#A0AEC0', letterSpacing: '1px', textTransform: 'uppercase', margin: '20px 0 12px' }}>Daftar Menu</p>
+                  {order.items.map((item) => (
+                    <div key={item.menuId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '8px 0', borderBottom: '1px solid #F7FAFC', gap: 12 }}>
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#1A1A2E', margin: '0 0 2px' }}>{item.menuName}</p>
+                        <p style={{ fontSize: 12, color: '#A0AEC0', margin: 0 }}>{item.qty}x @ Rp {item.price.toLocaleString('id-ID')}</p>
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: '#1A1A2E', whiteSpace: 'nowrap' }}>Rp {(item.price * item.qty).toLocaleString('id-ID')}</span>
+                    </div>
+                  ))}
+
+                  {/* Total */}
+                  <div style={{ background: 'rgba(214,90,49,0.06)', borderRadius: 10, padding: '14px 16px', margin: '16px 0 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(214,90,49,0.15)' }}>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: '#0B2F35' }}>Total Belanja</span>
+                    <span style={{ fontSize: 18, fontWeight: 900, color: '#D65A31' }}>Rp {order.totalPrice.toLocaleString('id-ID')}</span>
+                  </div>
+
+                  {/* Status Badge */}
+                  <div style={{ marginBottom: 16 }}>
+                    <span style={{
+                      display: 'inline-block',
+                      background: STATUS_MAP[order.status].bg,
+                      color: STATUS_MAP[order.status].color,
+                      fontWeight: 800, fontSize: 11, padding: '5px 14px', borderRadius: 20,
+                      letterSpacing: '0.5px', textTransform: 'uppercase',
+                    }}>
+                      {STATUS_MAP[order.status].label}
+                    </span>
+                  </div>
+
+                  {/* Footer */}
+                  <p style={{ fontSize: 11, color: '#CBD5E0', textAlign: 'center', margin: 0, paddingTop: 12, borderTop: '1px dashed #E2E8F0' }}>
+                    Dicetak pada {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} • Local Taste Hub
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Action Buttons */}
+            <div style={{ padding: '16px 22px', borderTop: '1px solid #F1F5F9', display: 'flex', gap: 12 }}>
+              <button
+                onClick={() => setShowPreview(false)}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: 12,
+                  background: '#fff', border: '1.5px solid #E2E8F0',
+                  color: '#4A5568', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#F8F9FA')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
+              >
+                Tutup
+              </button>
+              <button
+                onClick={() => { generateReceiptPDF(order); setShowPreview(false); }}
+                style={{
+                  flex: 2, padding: '12px', borderRadius: 12, border: 'none',
+                  background: 'linear-gradient(135deg, #D65A31, #B84A24)',
+                  color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  boxShadow: '0 4px 14px rgba(214,90,49,0.35)',
+                  transition: 'transform 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(214,90,49,0.45)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(214,90,49,0.35)'; }}
+              >
+                <Printer size={16} /> Cetak / Unduh PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px) scale(0.97); } to { opacity: 1; transform: none; } }
+      `}</style>
     </div>
   );
 }

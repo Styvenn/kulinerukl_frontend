@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiGet } from '@/lib/api';
 import {
-  ClipboardList, Package, ChevronRight, AlertCircle, Loader2, Calendar, FileText
+  ClipboardList, Package, ChevronRight, AlertCircle, Loader2, Calendar, FileText,
+  Banknote, CheckCircle2
 } from 'lucide-react';
 import type { CartItem } from '@/context/CartContext';
 
@@ -30,6 +31,16 @@ export const STATUS_MAP: Record<Order['status'], { label: string; color: string;
   completed: { label: 'Selesai', color: '#0B2F35', bg: 'rgba(11, 47, 53, 0.15)' },
 };
 
+// Filter pill definitions
+const FILTER_OPTIONS: { label: string; value: 'all' | Order['status'] }[] = [
+  { label: 'Semua', value: 'all' },
+  { label: 'Menunggu Pembayaran', value: 'pending_payment' },
+  { label: 'Menunggu Validasi', value: 'pending_validation' },
+  { label: 'Dikonfirmasi', value: 'confirmed' },
+  { label: 'Selesai', value: 'completed' },
+  { label: 'Ditolak', value: 'rejected' },
+];
+
 export default function OrdersPage() {
   const { role, user } = useAuth();
   const router = useRouter();
@@ -37,6 +48,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | Order['status']>('all');
 
   useEffect(() => {
     if (role === 'guest') {
@@ -67,6 +79,14 @@ export default function OrdersPage() {
     }
   }, [role, user]);
 
+  // Filtered orders by status
+  const filteredOrders = useMemo(() =>
+    statusFilter === 'all'
+      ? orders
+      : orders.filter((o) => o.status === statusFilter),
+    [orders, statusFilter]
+  );
+
   if (role !== 'user') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8F9FA' }}>
@@ -74,6 +94,10 @@ export default function OrdersPage() {
       </div>
     );
   }
+
+  // Stats
+  const totalBelanja = orders.reduce((acc, o) => acc + o.totalPrice, 0);
+  const totalSelesai = orders.filter((o) => o.status === 'completed').length;
 
   return (
     <div style={{ background: '#F8F9FA', minHeight: '100vh', padding: '40px 20px 100px' }}>
@@ -83,6 +107,95 @@ export default function OrdersPage() {
           <ClipboardList size={24} color="#D65A31" />
           Riwayat Pesanan
         </h1>
+
+        {/* ── Stats Cards ──────────────────────────────────────────────── */}
+        {!loading && !errorMsg && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+              {/* Total Pesanan */}
+              <div style={{
+                background: '#fff', borderRadius: 16, padding: 20,
+                boxShadow: '0 2px 12px rgba(0,0,0,0.04)', border: '1px solid #F1F5F9',
+                display: 'flex', alignItems: 'center', gap: 16,
+              }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12, flexShrink: 0,
+                  background: 'rgba(11,47,53,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <ClipboardList size={22} color="#0B2F35" />
+                </div>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: '#718096', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Pesanan</p>
+                  <p style={{ fontSize: 24, fontWeight: 900, color: '#0B2F35', margin: 0 }}>{orders.length}</p>
+                </div>
+              </div>
+
+              {/* Total Belanja */}
+              <div style={{
+                background: '#fff', borderRadius: 16, padding: 20,
+                boxShadow: '0 2px 12px rgba(0,0,0,0.04)', border: '1px solid #F1F5F9',
+                display: 'flex', alignItems: 'center', gap: 16,
+              }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12, flexShrink: 0,
+                  background: 'rgba(214,90,49,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Banknote size={22} color="#D65A31" />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: '#718096', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Belanja</p>
+                  <p style={{ fontSize: 16, fontWeight: 900, color: '#D65A31', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    Rp {totalBelanja.toLocaleString('id-ID')}
+                  </p>
+                </div>
+              </div>
+
+              {/* Pesanan Selesai */}
+              <div style={{
+                background: '#fff', borderRadius: 16, padding: 20,
+                boxShadow: '0 2px 12px rgba(0,0,0,0.04)', border: '1px solid #F1F5F9',
+                display: 'flex', alignItems: 'center', gap: 16,
+              }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12, flexShrink: 0,
+                  background: 'rgba(56,161,105,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <CheckCircle2 size={22} color="#38A169" />
+                </div>
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: '#718096', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pesanan Selesai</p>
+                  <p style={{ fontSize: 24, fontWeight: 900, color: '#38A169', margin: 0 }}>{totalSelesai}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Filter Bar ───────────────────────────────────────────────── */}
+            {orders.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 20, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+                {FILTER_OPTIONS.map((opt) => {
+                  const isActive = statusFilter === opt.value;
+                  const statusStyle = opt.value !== 'all' ? STATUS_MAP[opt.value] : null;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => setStatusFilter(opt.value)}
+                      style={{
+                        padding: '7px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                        whiteSpace: 'nowrap', fontSize: 12, fontWeight: isActive ? 700 : 500,
+                        transition: 'all 0.15s',
+                        background: isActive ? (statusStyle ? statusStyle.bg : '#0B2F35') : '#F1F5F9',
+                        color: isActive ? (statusStyle ? statusStyle.color : '#fff') : '#718096',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
 
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 60, color: '#A0AEC0' }}>
@@ -114,9 +227,17 @@ export default function OrdersPage() {
               Mulai Eksplorasi
             </Link>
           </div>
+        ) : filteredOrders.length === 0 ? (
+          /* Filter-specific empty state */
+          <div style={{ background: '#fff', borderRadius: 20, padding: '48px 20px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
+            <div style={{ width: 64, height: 64, background: '#F1F5F9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <Package size={28} color="#A0AEC0" />
+            </div>
+            <p style={{ fontSize: 15, fontWeight: 700, color: '#4A5568', margin: 0 }}>Tidak ada pesanan dengan status ini.</p>
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {orders.map((order) => {
+            {filteredOrders.map((order) => {
               const status = STATUS_MAP[order.status];
               const totalItems = order.items.reduce((acc, i) => acc + i.qty, 0);
               
@@ -168,7 +289,14 @@ export default function OrdersPage() {
         )}
 
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        ::-webkit-scrollbar { display: none; }
+        @media (max-width: 600px) {
+          /* Stack stats cards to 1 column on small screens */
+          div[style*="repeat(3, 1fr)"] { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

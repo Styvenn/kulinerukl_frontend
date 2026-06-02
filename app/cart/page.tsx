@@ -10,7 +10,7 @@ import {
 import { useCart, type CartItem } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
-import { apiPost } from '@/lib/api';
+import { apiPost, apiGet } from '@/lib/api';
 
 export default function CartPage() {
   const router = useRouter();
@@ -21,6 +21,7 @@ export default function CartPage() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('cash');
   const [transferProofUrl, setTransferProofUrl] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validating, setValidating] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Group items by restaurant
@@ -71,11 +72,38 @@ export default function CartPage() {
 
   const handleCheckout = async () => {
     if (items.length === 0) return;
+
+    // ── Validasi A: Kelengkapan Profil ───────────────────────────────────────
+    if (!user?.name?.trim() || !user?.email?.trim()) {
+      error('Profil Belum Lengkap', 'Lengkapi nama dan email di halaman Profil sebelum memesan.');
+      return;
+    }
+
+    // ── Validasi B: Stok Menu (via API) ──────────────────────────────────────
+    setValidating(true);
+    try {
+      for (const item of items) {
+        try {
+          const menu: any = await apiGet(`/menus/${item.menuId}`);
+          if (menu.stock < item.qty || menu.isAvailable === false) {
+            error('Stok Tidak Cukup', `${item.menuName} sudah habis atau stoknya tidak mencukupi.`);
+            return;
+          }
+        } catch {
+          // Jika endpoint tidak tersedia, lewati validasi stok untuk item ini
+        }
+      }
+    } finally {
+      setValidating(false);
+    }
+
+    // ── Validasi C: Bukti Transfer ────────────────────────────────────────────
     if (paymentMethod === 'transfer' && !transferProofUrl) {
       error('Bukti Transfer', 'Mohon unggah bukti transfer terlebih dahulu.');
       return;
     }
 
+    // ── Submit Order ──────────────────────────────────────────────────────────
     setIsSubmitting(true);
     try {
       const payload = {
@@ -302,16 +330,18 @@ export default function CartPage() {
 
                 <button
                   onClick={handleCheckout}
-                  disabled={isSubmitting || (paymentMethod === 'transfer' && !transferProofUrl)}
+                  disabled={isSubmitting || validating || (paymentMethod === 'transfer' && !transferProofUrl)}
                   style={{
                     width: '100%', padding: 14, borderRadius: 12, border: 'none',
-                    background: (isSubmitting || (paymentMethod === 'transfer' && !transferProofUrl)) ? '#CBD5E0' : 'linear-gradient(135deg, #1E5260, #0B2F35)',
-                    color: '#fff', fontWeight: 700, fontSize: 15, cursor: (isSubmitting || (paymentMethod === 'transfer' && !transferProofUrl)) ? 'not-allowed' : 'pointer',
+                    background: (isSubmitting || validating || (paymentMethod === 'transfer' && !transferProofUrl)) ? '#CBD5E0' : 'linear-gradient(135deg, #1E5260, #0B2F35)',
+                    color: '#fff', fontWeight: 700, fontSize: 15, cursor: (isSubmitting || validating || (paymentMethod === 'transfer' && !transferProofUrl)) ? 'not-allowed' : 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    boxShadow: (isSubmitting || (paymentMethod === 'transfer' && !transferProofUrl)) ? 'none' : '0 4px 14px rgba(11, 47, 53, 0.3)'
+                    boxShadow: (isSubmitting || validating || (paymentMethod === 'transfer' && !transferProofUrl)) ? 'none' : '0 4px 14px rgba(11, 47, 53, 0.3)'
                   }}
                 >
-                  {isSubmitting ? (
+                  {validating ? (
+                    <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Memvalidasi Stok...</>
+                  ) : isSubmitting ? (
                     <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Memproses...</>
                   ) : (
                     <>Buat Pesanan <ArrowRight size={16} /></>
