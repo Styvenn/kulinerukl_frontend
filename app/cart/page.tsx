@@ -144,7 +144,7 @@ export default function CartPage() {
               <ShoppingCart size={40} color="#D65A31" />
             </div>
             <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0B2F35', marginBottom: 10 }}>Keranjang Masih Kosong</h2>
-            <p style={{ color: '#718096', marginBottom: 24 }}>Yuk, eksplorasi menu lezat dari restoran terbaik di Malang.</p>
+            <p style={{ color: '#718096', marginBottom: 24 }}>Yuk, temukan menu lezat dari restoran terbaik di Malang.</p>
             <Link
               href="/"
               style={{

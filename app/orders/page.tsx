@@ -224,7 +224,7 @@ export default function OrdersPage() {
                 color: '#fff', textDecoration: 'none', borderRadius: 12, fontWeight: 700, fontSize: 14,
               }}
             >
-              Mulai Eksplorasi
+              Kembali ke Beranda
             </Link>
           </div>
         ) : filteredOrders.length === 0 ? (

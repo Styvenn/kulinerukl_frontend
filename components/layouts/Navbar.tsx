@@ -26,7 +26,6 @@ import { useToast } from '@/components/ui/Toast';
 // ─── Nav Links ────────────────────────────────────────────────────────────────
 const NAV_LINKS = [
   { href: '/', label: 'Beranda' },
-  { href: '/explore', label: 'Eksplorasi' },
   { href: '/about', label: 'Tentang Kami' },
 ];
 
